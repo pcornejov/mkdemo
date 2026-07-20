@@ -354,7 +354,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     trafficLightGroup.add(greenLight);
 
     trafficLightGroup.position.set(0, 5, 0);
-    trafficLightGroup.rotation.y = angle + Math.PI / 2;
+    trafficLightGroup.rotation.y = angle - Math.PI / 2;
     finishLineGroup.add(trafficLightGroup);
 
     scene.add(finishLineGroup);
