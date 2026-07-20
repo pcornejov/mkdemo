@@ -57,8 +57,18 @@ export function updateCamera(camera, kartState, dt, keys) {
     camera.lookAt(targetLookAt);
   }
 
-  // Wide FOV for retro speed sensation
-  camera.fov = 85;
+  // Speed Effects: FOV warp and slight shake
+  let baseFov = cameraMode === 0 ? 85 : 95;
+  if (Math.abs(kartState.speed) > 110) {
+    baseFov += (Math.abs(kartState.speed) - 110) * 0.4;
+    
+    // Shake
+    const shakeAmt = (Math.abs(kartState.speed) - 110) * 0.005;
+    camera.position.x += (Math.random() - 0.5) * shakeAmt;
+    camera.position.y += (Math.random() - 0.5) * shakeAmt;
+  }
+  
+  camera.fov = baseFov;
   camera.updateProjectionMatrix();
 }
 

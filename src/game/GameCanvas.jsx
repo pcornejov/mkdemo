@@ -449,6 +449,22 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     
     // 8. Player Kart Setup (Pole Position)
     const kartMesh = createKartMesh(0x00f3ff); // Cyan player
+    
+    // Headlights
+    if (levelData.ambientColor < 0x555555 || levelData.weather === 'rain') {
+      const headlight1 = new THREE.SpotLight(0xffffee, 2.0, 100, Math.PI / 6, 0.5, 1);
+      headlight1.position.set(-0.6, 0.5, -1);
+      headlight1.target.position.set(-0.6, 0, -10);
+      kartMesh.add(headlight1);
+      kartMesh.add(headlight1.target);
+      
+      const headlight2 = new THREE.SpotLight(0xffffee, 2.0, 100, Math.PI / 6, 0.5, 1);
+      headlight2.position.set(0.6, 0.5, -1);
+      headlight2.target.position.set(0.6, 0, -10);
+      kartMesh.add(headlight2);
+      kartMesh.add(headlight2.target);
+    }
+    
     scene.add(kartMesh);
 
     let kartState = initKartState(levelData);
@@ -658,11 +674,16 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         }
 
         // F. Particles Emission (Visual effects)
-        // Wheels positions for drift sparks
+        // Wheels positions for drift sparks & smoke
         if (kartState.isDrifting && Math.abs(kartState.speed) > 10.0) {
           // Blue/yellow drift sparks depending on drift charge
           const sparkColor = kartState.driftCharge > 0.8 ? 0xffea00 : 0x00f3ff;
           spawnParticles(kartState.pos, sparkColor, 2, 0.5);
+          
+          // Smoke when drifting
+          if (Math.random() > 0.4) {
+            spawnParticles(kartState.pos, 0x888888, 1, 0.8);
+          }
         }
 
         // Exhaust boost fire

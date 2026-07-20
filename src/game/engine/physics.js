@@ -263,11 +263,21 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   // 4. Drift logic
   const steerDir = (keysInput.left ? -1 : 0) + (keysInput.right ? 1 : 0);
   
+  // Hop and Gravity mechanics
+  if (state.jumpVelocity === undefined) {
+    state.jumpVelocity = 0;
+    state.jumpOffset = 0;
+  }
+  
   if (keysInput.drift && steerDir !== 0 && Math.abs(state.speed) > 25.0 && !state.offTrack) {
     if (!state.isDrifting) {
       state.isDrifting = true;
       state.driftDir = steerDir;
       state.driftCharge = 0;
+      // Kart Hop!
+      if (state.jumpOffset <= 0.1) {
+        state.jumpVelocity = 12.0;
+      }
     }
   }
 
@@ -381,6 +391,19 @@ export function updatePhysics(state, keysInput, levelData, dt) {
     state.vy = 0;
     state.isGrounded = true;
   }
+  
+  // Apply jump hop
+  if (state.jumpOffset > 0 || state.jumpVelocity > 0) {
+    state.jumpOffset += state.jumpVelocity * dt;
+    state.jumpVelocity -= 40.0 * dt; // gravity
+    if (state.jumpOffset <= 0) {
+      state.jumpOffset = 0;
+      state.jumpVelocity = 0;
+    }
+  }
+
+  // Final y with hop offset
+  state.pos.y += state.jumpOffset;
 
   // 9. Resolve colliders
   resolveWallCollisions(state, levelData);
