@@ -22,7 +22,7 @@ export default function Hud({ onExitMenu }) {
       </div>
 
       {/* Top Left below Lap: Item */}
-      <div className="hud-panel hud-item" style={{ marginTop: '10px' }}>
+      <div className="hud-panel hud-item" style={{ position: 'absolute', top: '105px', left: '25px', minWidth: '120px' }}>
         <span className="hud-label">OBJETO [E]</span>
         <span id="hud-item-value" className="hud-value" style={{ color: '#00f3ff', fontSize: '1.2rem' }}>Vacío</span>
       </div>
