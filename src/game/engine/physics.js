@@ -234,15 +234,15 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   const trackInfo = checkOnTrack(state.pos, levelData);
   state.offTrack = !trackInfo.onTrack;
 
-  let maxSpeed = 45.0;
-  let accelRate = 25.0;
+  let maxSpeed = 100.0;
+  let accelRate = 50.0;
   
   if (state.boostTimer > 0) {
-    maxSpeed = 65.0;
-    accelRate = 50.0;
+    maxSpeed = 145.0;
+    accelRate = 90.0;
   } else if (state.offTrack) {
-    maxSpeed = 15.0;
-    accelRate = 12.0;
+    maxSpeed = 30.0;
+    accelRate = 20.0;
   }
 
   // 3. User acceleration
@@ -256,7 +256,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   // 4. Drift logic
   const steerDir = (keysInput.left ? -1 : 0) + (keysInput.right ? 1 : 0);
   
-  if (keysInput.drift && steerDir !== 0 && Math.abs(state.speed) > 12.0 && !state.offTrack) {
+  if (keysInput.drift && steerDir !== 0 && Math.abs(state.speed) > 25.0 && !state.offTrack) {
     if (!state.isDrifting) {
       state.isDrifting = true;
       state.driftDir = steerDir;
@@ -264,7 +264,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
     }
   }
 
-  if (!keysInput.drift || Math.abs(state.speed) < 8.0 || state.offTrack) {
+  if (!keysInput.drift || Math.abs(state.speed) < 18.0 || state.offTrack) {
     if (state.isDrifting) {
       // Trigger mini-boost on release if drift was held long enough
       if (state.driftCharge > 0.8) {
@@ -286,7 +286,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   }
 
   // Scale steering with speed
-  const speedRatio = Math.min(Math.abs(state.speed) / 15.0, 1.0);
+  const speedRatio = Math.min(Math.abs(state.speed) / 35.0, 1.0);
   const steerFactor = steerSpeed * speedRatio * Math.sign(state.speed);
   
   // Update angle
@@ -309,7 +309,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
 
   // Smooth brake response
   if (keysInput.backward && state.speed > 0) {
-    state.speed -= 30.0 * dt; // brake deceleration
+    state.speed -= 80.0 * dt; // brake deceleration
   }
 
   // Clamp speed to terrain max

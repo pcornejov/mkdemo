@@ -246,7 +246,7 @@ export const levels = {
       { x: -180, y: 0, z: -10, width: 10, length: 6 }
     ],
     rivalCount: 3,
-    rivalSpeed: 42,
+    rivalSpeed: 95,
     startPosition: { x: 0, y: 0, z: 150 },
     startRotation: Math.PI / 2,
     ambientColor: 0x3b82f6,

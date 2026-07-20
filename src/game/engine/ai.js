@@ -51,33 +51,55 @@ export function updateRivals(rivals, playerState, levelData, dt) {
     const target = path[rival.currentWaypointIdx];
     
     // Vector to target in XZ plane
-    const dx = target.x - rival.pos.x;
-    const dz = target.z - rival.pos.z;
+    let dx = target.x - rival.pos.x;
+    let dz = target.z - rival.pos.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
 
     // If close to waypoint, target the next one
-    if (dist < 7.0) {
+    if (dist < 15.0) {
       rival.currentWaypointIdx = (rival.currentWaypointIdx + 1) % n;
     }
+
+    // --- Obstacle Avoidance ---
+    let avoidanceForceX = 0;
+    let avoidanceForceZ = 0;
+    if (levelData.obstacles) {
+      levelData.obstacles.forEach(obs => {
+        const ox = obs.x - rival.pos.x;
+        const oz = obs.z - rival.pos.z;
+        const oDistSq = ox * ox + oz * oz;
+        // Avoid if within 25 units
+        if (oDistSq < 625 && oDistSq > 0) {
+          const oDist = Math.sqrt(oDistSq);
+          // Push vector away from obstacle
+          avoidanceForceX -= (ox / oDist) * (25 - oDist);
+          avoidanceForceZ -= (oz / oDist) * (25 - oDist);
+        }
+      });
+    }
+
+    // Blend avoidance force with target vector
+    dx += avoidanceForceX * 0.8;
+    dz += avoidanceForceZ * 0.8;
 
     // Steering calculations
     const targetAngle = Math.atan2(dx, dz);
     let diff = targetAngle - rival.angle;
     diff = Math.atan2(Math.sin(diff), Math.cos(diff)); // Normalize to [-PI, PI]
 
-    // AI steering speed
-    const maxSteer = 2.8;
+    // AI steering speed (higher at high speeds to maintain control)
+    const maxSteer = 3.5;
     const steerInput = Math.sign(diff);
     rival.angle += steerInput * Math.min(Math.abs(diff), maxSteer * dt);
 
     // Speed logic: slow down on sharp turns
     let targetSpeed = rival.maxSpeed;
-    if (Math.abs(diff) > 0.4) {
-      targetSpeed *= 0.65; // brake on tight curves
+    if (Math.abs(diff) > 0.6) {
+      targetSpeed *= 0.55; // brake on tight curves
     }
 
     // Smooth speed change
-    rival.speed = THREE.MathUtils.lerp(rival.speed, targetSpeed, 2.0 * dt);
+    rival.speed = THREE.MathUtils.lerp(rival.speed, targetSpeed, 2.5 * dt);
 
     // Update position XZ
     rival.pos.x += Math.sin(rival.angle) * rival.speed * dt;
