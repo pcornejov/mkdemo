@@ -97,6 +97,26 @@ export function updateRivals(rivals, playerState, levelData, dt) {
     if (Math.abs(diff) > 0.6) {
       targetSpeed *= 0.55; // brake on tight curves
     }
+    
+    // Rubber-banding: adjust speed based on distance to player
+    const distToPlayerXZ = new THREE.Vector2(playerState.pos.x - rival.pos.x, playerState.pos.z - rival.pos.z);
+    // Rough heuristic: if AI is ahead, distToPlayer Z in local space is negative. We'll use a simpler metric:
+    // We just check who is closer to the next waypoint or just use absolute distance for a generic rubber band.
+    // A better approach: If player speed is high and distance is large, maybe the player is behind or ahead.
+    // For simplicity, we just scale AI speed towards the player's speed if they are far away.
+    const distToPlayer = distToPlayerXZ.length();
+    
+    // Determine if rival is ahead of player by dot product of player's heading
+    const pHeading = new THREE.Vector2(Math.sin(playerState.angle), Math.cos(playerState.angle));
+    const isPlayerBehind = pHeading.dot(distToPlayerXZ) > 0; // AI is in front of player
+    
+    if (isPlayerBehind && distToPlayer > 50) {
+      // AI is far ahead, slow them down slightly so player can catch up
+      targetSpeed = Math.min(targetSpeed, playerState.speed * 0.8 + 20);
+    } else if (!isPlayerBehind && distToPlayer > 100) {
+      // AI is far behind, speed them up
+      targetSpeed = Math.max(targetSpeed, playerState.speed * 1.1 + 10);
+    }
 
     // Smooth speed change
     rival.speed = THREE.MathUtils.lerp(rival.speed, targetSpeed, 2.5 * dt);
