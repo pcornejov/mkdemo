@@ -274,6 +274,32 @@ export function getLevelData(levelId) {
   // Generate primary smoothed path
   const primaryPath = generatePath(cfg.keyPoints, 8, 4); // Increased subdivisions for smoother curves on larger track
   
+  // Generate item boxes dynamically for all levels
+  let dynamicItems = cfg.itemBoxes ? [...cfg.itemBoxes] : [];
+  if (primaryPath.length > 50) {
+    const segments = levelId === 3 ? 6 : 3;
+    for (let i = 1; i <= segments; i++) {
+      const idx = Math.floor((i * primaryPath.length) / (segments + 1));
+      const pt = primaryPath[idx];
+      const nextPt = primaryPath[(idx + 1) % primaryPath.length];
+      const tangent = new THREE.Vector3().subVectors(nextPt, pt).normalize();
+      const normal = new THREE.Vector3(-tangent.z, 0, tangent.x); // perpendicular
+      
+      const rowSize = Math.floor(cfg.width / 5);
+      const spacing = (cfg.width - 8) / (rowSize - 1);
+      const startX = -(cfg.width - 8) / 2;
+      for (let j = 0; j < rowSize; j++) {
+        const offset = startX + j * spacing;
+        dynamicItems.push({
+          x: pt.x + normal.x * offset,
+          y: pt.y + 2.0,
+          z: pt.z + normal.z * offset,
+          active: true
+        });
+      }
+    }
+  }
+  
   if (levelId === 3) {
     // Level 3 has a shortcut! Let's build both main track and shortcut track.
     const shortcutPath = generatePath(cfg.shortcutKeyPoints, 5, 3);
@@ -340,7 +366,7 @@ export function getLevelData(levelId) {
       checkpoints: Array.from({length: 8}).map((_, i) => primaryPath[Math.floor((i * primaryPath.length) / 8)]),
       obstacles: cfg.obstacles,
       boostPads: cfg.boostPads,
-      itemBoxes: cfg.itemBoxes,
+      itemBoxes: dynamicItems,
       rivalCount: cfg.rivalCount,
       rivalSpeed: cfg.rivalSpeed,
       ambientColor: cfg.ambientColor,
@@ -364,7 +390,7 @@ export function getLevelData(levelId) {
       checkpoints: Array.from({length: 6}).map((_, i) => primaryPath[Math.floor((i * primaryPath.length) / 6)]),
       obstacles: cfg.obstacles,
       boostPads: cfg.boostPads,
-      itemBoxes: cfg.itemBoxes,
+      itemBoxes: dynamicItems,
       rivalCount: cfg.rivalCount,
       rivalSpeed: cfg.rivalSpeed,
       ambientColor: cfg.ambientColor,
