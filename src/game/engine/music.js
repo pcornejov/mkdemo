@@ -15,7 +15,9 @@ class MetalMusicEngine {
 
     // Musical Note Frequencies (Hz)
     const C2 = 65.41;
+    const Db2 = 69.30;
     const D2 = 73.42;
+    const Eb2 = 77.78;
     const E2 = 82.41;
     const F2 = 87.31;
     const G2 = 98.00;
