@@ -204,57 +204,56 @@ export const levels = {
     wallColor: 0xfacc15        // Glowing Inflatable Yellow
   },
   3: {
-    name: "Templo del Drift & Atajo",
+    name: "Templo del Drift & Atajo (GP)",
     laps: 3,
-    width: 24,
+    width: 32,
     keyPoints: [
-      // Main loop
-      { x: 0, y: 0, z: 50 },
-      { x: 30, y: 0, z: 50 },
-      { x: 55, y: 0, z: 40 },   // Branch start (shortcut leaves here)
-      { x: 75, y: 0, z: 30 },   // Outer loop starts
-      { x: 90, y: 0, z: 5 },
-      { x: 95, y: 0, z: -25 },
-      { x: 80, y: 0, z: -55 },
-      { x: 50, y: 0, z: -70 },  // Outer loop ends (shortcut merges here)
-      { x: 20, y: 0, z: -75 },
-      { x: -15, y: 0, z: -70 },
-      { x: -45, y: 0, z: -55 },
-      { x: -65, y: 0, z: -25 },
-      { x: -75, y: 0, z: 5 },
-      { x: -60, y: 0, z: 30 },
-      { x: -30, y: 0, z: 45 },
+      // Main loop (Scaled 3x)
+      { x: 0, y: 0, z: 150 },
+      { x: 90, y: 0, z: 150 },
+      { x: 165, y: 0, z: 120 },   // Branch start (shortcut leaves here)
+      { x: 225, y: 0, z: 90 },    // Outer loop starts
+      { x: 270, y: 0, z: 15 },
+      { x: 285, y: 0, z: -75 },
+      { x: 240, y: 0, z: -165 },
+      { x: 150, y: 0, z: -210 },  // Outer loop ends (shortcut merges here)
+      { x: 60, y: 0, z: -225 },
+      { x: -45, y: 0, z: -210 },
+      { x: -135, y: 0, z: -165 },
+      { x: -195, y: 0, z: -75 },
+      { x: -225, y: 0, z: 15 },
+      { x: -180, y: 0, z: 90 },
+      { x: -90, y: 0, z: 135 },
     ],
     shortcutKeyPoints: [
-      { x: 55, y: 0, z: 40 },   // Start
-      { x: 52, y: 0, z: 10 },   // S-curve inside shortcut
-      { x: 48, y: 0, z: -20 },
-      { x: 51, y: 0, z: -50 },
-      { x: 50, y: 0, z: -70 }   // End
+      { x: 165, y: 0, z: 120 },   // Start
+      { x: 156, y: 0, z: 30 },    // S-curve inside shortcut
+      { x: 144, y: 0, z: -60 },
+      { x: 153, y: 0, z: -150 },
+      { x: 150, y: 0, z: -210 }   // End
     ],
-    // For level 3, we manually construct the track including shortcut
     obstacles: [
-      // Obstacles on main track
-      { x: 85, y: 0, z: 15, radius: 2.0, type: 'danger' },
-      { x: 80, y: 0, z: -40, radius: 2.0, type: 'danger' },
-      { x: -30, y: 0, z: -65, radius: 2.0, type: 'danger' },
-      { x: -70, y: 0, z: 15, radius: 2.0, type: 'danger' },
+      { x: 255, y: 0, z: 45, radius: 4.0, type: 'danger' },
+      { x: 240, y: 0, z: -120, radius: 4.0, type: 'danger' },
+      { x: -90, y: 0, z: -195, radius: 4.0, type: 'danger' },
+      { x: -210, y: 0, z: 45, radius: 4.0, type: 'danger' },
+      { x: 120, y: 0, z: 140, radius: 3.5, type: 'danger' },
+      { x: -150, y: 0, z: -120, radius: 3.5, type: 'danger' }
     ],
     boostPads: [
-      { x: 20, y: 0, z: 50, width: 6, length: 3 },
-      // Boost pad inside the shortcut to reward player
-      { x: 50, y: 0, z: -20, width: 4, length: 3 }
+      { x: 60, y: 0, z: 150, width: 10, length: 6 },
+      { x: 150, y: 0, z: -60, width: 8, length: 6 },
+      { x: -180, y: 0, z: -10, width: 10, length: 6 }
     ],
     rivalCount: 3,
-    rivalSpeed: 25,
-    checkpoints: [0, 15, 30, 45],
-    startPosition: { x: 0, y: 0, z: 50 },
+    rivalSpeed: 42,
+    startPosition: { x: 0, y: 0, z: 150 },
     startRotation: Math.PI / 2,
     ambientColor: 0x3b82f6,
-    skyColor: 0x0f172a,        // Midnight Toy Blue
-    groundColor: 0x10b981,     // Candy Mint Green
-    trackColor: 0x334155,      // Dark Slate Track
-    wallColor: 0x06b6d4        // Glowing Neon Cyan
+    skyColor: 0x0f172a,
+    groundColor: 0x10b981,
+    trackColor: 0x334155,
+    wallColor: 0x06b6d4
   }
 };
 
@@ -264,7 +263,7 @@ export function getLevelData(levelId) {
   if (!cfg) return null;
 
   // Generate primary smoothed path
-  const primaryPath = generatePath(cfg.keyPoints, 5, 3);
+  const primaryPath = generatePath(cfg.keyPoints, 8, 4); // Increased subdivisions for smoother curves on larger track
   
   if (levelId === 3) {
     // Level 3 has a shortcut! Let's build both main track and shortcut track.
@@ -329,7 +328,7 @@ export function getLevelData(levelId) {
       outerWalls: allOuterWalls,
       pathPoints: primaryPath, // rivals will follow the main path
       shortcutPathPoints: shortcutPath,
-      checkpoints: cfg.checkpoints.map(idx => primaryPath[idx]),
+      checkpoints: Array.from({length: 8}).map((_, i) => primaryPath[Math.floor((i * primaryPath.length) / 8)]),
       obstacles: cfg.obstacles,
       boostPads: cfg.boostPads,
       rivalCount: cfg.rivalCount,
@@ -351,7 +350,7 @@ export function getLevelData(levelId) {
       innerWalls: track.innerWalls,
       outerWalls: track.outerWalls,
       pathPoints: primaryPath,
-      checkpoints: cfg.checkpoints.map(idx => primaryPath[idx]),
+      checkpoints: Array.from({length: 6}).map((_, i) => primaryPath[Math.floor((i * primaryPath.length) / 6)]),
       obstacles: cfg.obstacles,
       boostPads: cfg.boostPads,
       rivalCount: cfg.rivalCount,
