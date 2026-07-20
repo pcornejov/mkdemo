@@ -59,16 +59,29 @@ export function updateCamera(camera, kartState, dt, keys) {
 
   // Speed Effects: FOV warp and slight shake
   let baseFov = cameraMode === 0 ? 85 : 95;
+  
+  // Dramatic Slipstream/Drafting FOV pull-back
+  if (kartState.draftCharge > 0) {
+    baseFov += kartState.draftCharge * 15.0;
+    const shakeAmt = kartState.draftCharge * 0.1;
+    camera.position.x += (Math.random() - 0.5) * shakeAmt;
+    camera.position.y += (Math.random() - 0.5) * shakeAmt;
+  }
+
   if (Math.abs(kartState.speed) > 110) {
-    baseFov += (Math.abs(kartState.speed) - 110) * 0.4;
+    baseFov += (Math.abs(kartState.speed) - 110) * 0.8;
     
     // Shake
-    const shakeAmt = (Math.abs(kartState.speed) - 110) * 0.005;
+    const shakeAmt = (Math.abs(kartState.speed) - 110) * 0.015;
     camera.position.x += (Math.random() - 0.5) * shakeAmt;
     camera.position.y += (Math.random() - 0.5) * shakeAmt;
   }
   
-  camera.fov = baseFov;
+  // Smooth FOV transitions to avoid snapping
+  if (!camera.userData.currentFov) camera.userData.currentFov = baseFov;
+  camera.userData.currentFov = THREE.MathUtils.lerp(camera.userData.currentFov, baseFov, 5.0 * dt);
+  
+  camera.fov = camera.userData.currentFov;
   camera.updateProjectionMatrix();
 }
 

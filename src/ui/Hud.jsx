@@ -25,6 +25,11 @@ export default function Hud({ onExitMenu }) {
           <span className="hud-label">OBJETO [Q]</span>
           <span id="hud-item-value" className="hud-value" style={{ color: '#00f3ff', fontSize: '1.4rem' }}>Vacío</span>
         </div>
+        
+        <div className="hud-panel hud-position">
+          <span className="hud-label">POSICIÓN</span>
+          <span id="hud-position-value" className="hud-value font-mono" style={{ fontSize: '2.5rem', color: '#ffea00' }}>1/4</span>
+        </div>
       </div>
 
       {/* Center Screen: Countdown */}

@@ -16,19 +16,35 @@ export default function EndScreen({ finalTime, levelId, onRetry, onExitMenu }) {
         <h1 className="end-screen-title text-neon-glow">¡CARRERA COMPLETADA!</h1>
         <p className="end-screen-subtitle">Has cruzado la línea de meta con éxito.</p>
         
-        <div className="end-stats-box">
+        <div className="end-stats-box" style={{ width: '400px' }}>
           <div className="end-stat-row">
             <span className="end-stat-label">Torneo</span>
-            <span className="end-stat-value">
-              Gran Prix - Templo del Drift
-            </span>
+            <span className="end-stat-value">Gran Prix</span>
           </div>
-          <div className="end-stat-row">
+          <div className="end-stat-row" style={{ borderBottom: '1px solid #333', paddingBottom: '10px', marginBottom: '10px' }}>
             <span className="end-stat-label">Tiempo Final</span>
-            <span className="end-stat-value text-neon font-mono">
-              {formatTime(finalTime)}
-            </span>
+            <span className="end-stat-value text-neon font-mono">{formatTime(finalTime)}</span>
           </div>
+
+          <h3 style={{ color: '#fff', textAlign: 'center', marginBottom: '10px' }}>Clasificación</h3>
+          {leaderboard && leaderboard.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              {leaderboard.map((r, idx) => (
+                <div key={r.id} style={{ 
+                  display: 'flex', justifyContent: 'space-between', 
+                  padding: '8px', 
+                  backgroundColor: r.id.includes('Jugador') ? '#00f3ff33' : '#222',
+                  borderRadius: '4px',
+                  color: r.id.includes('Jugador') ? '#00f3ff' : '#aaa'
+                }}>
+                  <span>#{idx + 1} {r.id}</span>
+                  {idx === 0 && <span style={{ color: '#ffea00' }}>🏆 GANADOR</span>}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', color: '#666' }}>Sin datos</div>
+          )}
         </div>
         
         <div className="end-buttons-container" style={{ display: 'flex', flexDirection: 'column' }}>

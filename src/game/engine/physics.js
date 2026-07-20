@@ -350,6 +350,16 @@ export function updatePhysics(state, keysInput, levelData, dt) {
         z: state.pos.z - Math.cos(state.angle) * 5.0,
         radius: 3.5
       });
+    } else if (state.currentItem === 'shell') {
+      if (!levelData.projectiles) levelData.projectiles = [];
+      levelData.projectiles.push({
+        x: state.pos.x + Math.sin(state.angle) * 4.0,
+        z: state.pos.z + Math.cos(state.angle) * 4.0,
+        vx: Math.sin(state.angle) * 160.0,
+        vz: Math.cos(state.angle) * 160.0,
+        bounces: 4,
+        ownerId: 'player'
+      });
     }
     state.currentItem = null; // consume
     keysInput.item = false; // consume key
@@ -464,7 +474,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
         box.active = false; // collect box
         playSound('item');
         // Give random item
-        const items = ['mushroom', 'oil_slick', 'mushroom'];
+        const items = ['mushroom', 'oil_slick', 'shell', 'mushroom'];
         state.currentItem = items[Math.floor(Math.random() * items.length)];
         
         // respawn box after 5 seconds

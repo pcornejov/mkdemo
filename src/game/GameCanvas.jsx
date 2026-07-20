@@ -1,7 +1,7 @@
 // src/game/GameCanvas.jsx
 import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import { initInput, keys } from './engine/input.js';
+import { initInput, keys, updateGamepad } from './engine/input.js';
 import { getLevelData } from './engine/levels.js';
 import { initKartState, updatePhysics, getTrackHeight } from './engine/physics.js';
 import { createKartMesh, updateKartVisuals } from './engine/kart.js';
@@ -451,8 +451,11 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         boxMesh.position.set(box.x, box.y, box.z);
         scene.add(boxMesh);
         itemBoxMeshes.push({ mesh: boxMesh, data: box });
+        scene.add(boxMesh);
       });
     }
+
+    const projectileMeshes = new Map();
 
     // Grid Positions Helper
     const startDir = new THREE.Vector3(Math.sin(levelData.startRotation), 0, Math.cos(levelData.startRotation));
@@ -541,7 +544,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           // Move
           p.mesh.position.addScaledVector(p.vel, dt);
           // Apply gravity to particles
-          p.vel.y -= 9.8 * dt;
+          if (!p.noGravity) p.vel.y -= 9.8 * dt;
           // Scale down
           const pct = p.life / p.maxLife;
           p.mesh.scale.set(pct, pct, pct);
@@ -575,6 +578,8 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     function loop(time) {
       const dt = Math.min((time - lastTime) / 1000, 0.1); // limit dt to 100ms
       lastTime = time;
+      
+      updateGamepad();
 
       // Handle level reset (R key)
       if (keys.reset) {
@@ -695,7 +700,24 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           if (nextCheckpointIndex === 0) {
             if (currentLap >= totalLaps) {
               finished = true;
-              onFinish(elapsedTime);
+              
+              // Compute final leaderboard
+              const allRacersEnd = [
+                { id: 'Tú (Jugador)', lap: currentLap, cp: nextCheckpointIndex, dist: 0 },
+                ...rivals.map((r, i) => ({ 
+                  id: `Rival ${i+1}`, 
+                  lap: r.lap, 
+                  cp: r.nextCheckpointIndex, 
+                  dist: r.pos.distanceTo(levelData.checkpoints[r.nextCheckpointIndex]) 
+                }))
+              ];
+              allRacersEnd.sort((a, b) => {
+                if (a.lap !== b.lap) return b.lap - a.lap;
+                if (a.cp !== b.cp) return b.cp - a.cp;
+                return a.dist - b.dist;
+              });
+
+              onFinish(elapsedTime, allRacersEnd);
             } else {
               currentLap += 1;
               const lastLapEl = document.getElementById('hud-last-lap-value');
@@ -734,13 +756,45 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           skidIdx = (skidIdx + 1) % maxSkids;
         }
 
-        // Exhaust boost fire (or Slipstream)
-        if (kartState.boostTimer > 0 || (kartState.draftCharge && kartState.draftCharge > 0.5)) {
-          // Cyan boost fire, or purple for slipstream
-          const flameColor = kartState.boostTimer > 0 ? 0x00ffff : 0xaa00ff;
+        // Exhaust boost fire
+        if (kartState.boostTimer > 0) {
           const backOffsetDir = new THREE.Vector3(-Math.sin(kartState.angle), 0.3, -Math.cos(kartState.angle));
           const flamePos = kartState.pos.clone().addScaledVector(backOffsetDir, 1.2);
-          spawnParticles(flamePos, flameColor, 3, 1.2);
+          spawnParticles(flamePos, 0x00ffff, 3, 1.2);
+        }
+        
+        // Slipstream Wind Lines
+        if (kartState.draftCharge && kartState.draftCharge > 0.1) {
+          // Spawn particles around kart that fly rapidly backward
+          const rightDir = new THREE.Vector3(-Math.cos(kartState.angle), 0, Math.sin(kartState.angle));
+          const upDir = new THREE.Vector3(0, 1, 0);
+          
+          for (let i = 0; i < 2; i++) {
+            const offsetX = (Math.random() - 0.5) * 5.0;
+            const offsetY = Math.random() * 3.0;
+            const windPos = kartState.pos.clone()
+              .addScaledVector(rightDir, offsetX)
+              .addScaledVector(upDir, offsetY);
+              
+            const pGeom = new THREE.BoxGeometry(0.1, 0.1, 1.5); // stretched line
+            const pMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
+            const pMesh = new THREE.Mesh(pGeom, pMat);
+            pMesh.position.copy(windPos);
+            pMesh.rotation.y = kartState.angle;
+            scene.add(pMesh);
+            
+            particles.push({
+              mesh: pMesh,
+              vel: new THREE.Vector3(
+                -Math.sin(kartState.angle) * 80.0,
+                0,
+                -Math.cos(kartState.angle) * 80.0
+              ),
+              life: 0.3,
+              maxLife: 0.3,
+              noGravity: true
+            });
+          }
         }
 
         updateParticles(dt);
@@ -785,6 +839,72 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
               obstacleMeshes.push(slickMesh);
             }
           });
+        }
+        
+        // H4. Update Projectiles (Shells)
+        if (levelData.projectiles) {
+          for (let i = levelData.projectiles.length - 1; i >= 0; i--) {
+            const p = levelData.projectiles[i];
+            p.x += p.vx * dt;
+            p.z += p.vz * dt;
+            
+            // Check wall bounce (simple bounding box around walls)
+            let bounced = false;
+            levelData.outerWalls.concat(levelData.innerWalls).forEach(w => {
+              if (!bounced) {
+                // approximate collision
+                const dx1 = p.x - w.p1.x; const dz1 = p.z - w.p1.z;
+                const dx2 = p.x - w.p2.x; const dz2 = p.z - w.p2.z;
+                if (Math.sqrt(dx1*dx1 + dz1*dz1) + Math.sqrt(dx2*dx2 + dz2*dz2) < w.p1.distanceTo(w.p2) + 0.5) {
+                  // Bounce normal
+                  const nx = -(w.p2.z - w.p1.z);
+                  const nz = (w.p2.x - w.p1.x);
+                  const len = Math.sqrt(nx*nx + nz*nz);
+                  const dprod = p.vx * (nx/len) + p.vz * (nz/len);
+                  p.vx -= 2 * dprod * (nx/len);
+                  p.vz -= 2 * dprod * (nz/len);
+                  bounced = true;
+                }
+              }
+            });
+            if (bounced) p.bounces--;
+            
+            // Hit rivals
+            rivals.forEach(r => {
+              if (p.ownerId !== 'rival' && Math.pow(p.x - r.pos.x, 2) + Math.pow(p.z - r.pos.z, 2) < 9.0) {
+                r.speed = 0;
+                r.spinOutTimer = 1.5;
+                p.bounces = -1;
+              }
+            });
+            
+            // Hit player
+            if (p.ownerId !== 'player' && Math.pow(p.x - kartState.pos.x, 2) + Math.pow(p.z - kartState.pos.z, 2) < 9.0) {
+              kartState.speed = 0;
+              kartState.spinOutTimer = 1.5;
+              p.bounces = -1;
+            }
+            
+            if (p.bounces < 0) {
+              const mesh = projectileMeshes.get(p);
+              if (mesh) {
+                scene.remove(mesh);
+                projectileMeshes.delete(p);
+              }
+              levelData.projectiles.splice(i, 1);
+            } else {
+              let mesh = projectileMeshes.get(p);
+              if (!mesh) {
+                const geom = new THREE.DodecahedronGeometry(1.2);
+                const mat = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+                mesh = new THREE.Mesh(geom, mat);
+                scene.add(mesh);
+                projectileMeshes.set(p, mesh);
+              }
+              mesh.position.set(p.x, getTrackHeight(p, levelData) + 1.2, p.z);
+              mesh.rotation.y += 10.0 * dt;
+            }
+          }
         }
 
         // G. Update HUD elements directly in the DOM for maximum performance
@@ -834,6 +954,32 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
             boostTextEl.textContent = 'READY';
             boostTextEl.style.color = '#00ff88';
           }
+        }
+        
+        // Compute Race Position
+        const cpTarget = levelData.checkpoints[nextCheckpointIndex];
+        const distToCP = Math.sqrt(Math.pow(kartState.pos.x - cpTarget.x, 2) + Math.pow(kartState.pos.z - cpTarget.z, 2));
+        
+        const allRacers = [
+          { id: 'player', lap: currentLap, cp: nextCheckpointIndex, dist: distToCP },
+          ...rivals.map((r, i) => ({ 
+            id: `rival${i}`, 
+            lap: r.lap, 
+            cp: r.nextCheckpointIndex, 
+            dist: r.pos.distanceTo(levelData.checkpoints[r.nextCheckpointIndex]) 
+          }))
+        ];
+        
+        allRacers.sort((a, b) => {
+          if (a.lap !== b.lap) return b.lap - a.lap;
+          if (a.cp !== b.cp) return b.cp - a.cp;
+          return a.dist - b.dist; // Smaller distance is better
+        });
+        
+        const playerPos = allRacers.findIndex(r => r.id === 'player') + 1;
+        const posEl = document.getElementById('hud-position-value');
+        if (posEl) {
+          posEl.textContent = `${playerPos}/${allRacers.length}`;
         }
         
         const itemEl = document.getElementById('hud-item-value');

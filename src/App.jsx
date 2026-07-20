@@ -10,6 +10,7 @@ function App() {
   const [screen, setScreen] = useState('menu'); // 'menu' | 'game' | 'end'
   const [levelId, setLevelId] = useState(1);
   const [finalTime, setFinalTime] = useState(0);
+  const [leaderboard, setLeaderboard] = useState([]);
 
   const [musicEnabled, setMusicEnabled] = useState(true);
 
@@ -31,8 +32,9 @@ function App() {
     // console.log(`Lap ${lap}/${totalLaps}`);
   };
 
-  const handleFinish = (time) => {
+  const handleFinish = (time, racers) => {
     setFinalTime(time);
+    setLeaderboard(racers || []);
     setScreen('end');
   };
 
@@ -68,6 +70,7 @@ function App() {
         <EndScreen
           finalTime={finalTime}
           levelId={levelId}
+          leaderboard={leaderboard}
           onRetry={() => setScreen('game')}
           onNextLevel={() => {
             setLevelId((prev) => Math.min(prev + 1, 3));
