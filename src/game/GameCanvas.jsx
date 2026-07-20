@@ -76,9 +76,18 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     scene.fog = new THREE.FogExp2(levelData.skyColor, 0.007);
 
     const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000); // 3D FOV
+    
+    // Minimap Camera (Orthographic)
+    const minimapSize = 300;
+    const minimapCamera = new THREE.OrthographicCamera(-minimapSize, minimapSize, minimapSize, -minimapSize, 1, 1000);
+    minimapCamera.position.set(0, 500, 0);
+    minimapCamera.lookAt(0, 0, 0);
+    minimapCamera.rotation.z = Math.PI / 2; // Orient correctly
+
     const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, antialias: true }); 
     renderer.setSize(width, height); 
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.autoClear = false; // We will clear manually for two passes
     canvasRef.current.style.imageRendering = 'auto';
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -217,6 +226,30 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         cloud.add(mesh);
       }
       decorGroup.add(cloud);
+    }
+
+    // Weather Effects
+    let rainSystem = null;
+    if (levelData.weather === 'rain') {
+      const rainCount = 1500;
+      const rainGeom = new THREE.BufferGeometry();
+      const rainPositions = new Float32Array(rainCount * 3);
+      for (let i = 0; i < rainCount; i++) {
+        rainPositions[i*3] = (Math.random() - 0.5) * 100; // x around camera
+        rainPositions[i*3+1] = Math.random() * 40; // y height
+        rainPositions[i*3+2] = (Math.random() - 0.5) * 100; // z around camera
+      }
+      rainGeom.setAttribute('position', new THREE.BufferAttribute(rainPositions, 3));
+      
+      const rainMat = new THREE.PointsMaterial({
+        color: 0xaaaaaa,
+        size: 0.2,
+        transparent: true,
+        opacity: 0.6
+      });
+      
+      rainSystem = new THREE.Points(rainGeom, rainMat);
+      scene.add(rainSystem);
     }
 
     // 5. Create Track Meshes
@@ -389,6 +422,24 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         padMesh.position.set(pad.x, pad.y + 0.05, pad.z);
         scene.add(padMesh);
         boostPadMeshes.push(padMesh);
+      });
+    }
+
+    const itemBoxMeshes = [];
+    if (levelData.itemBoxes) {
+      const boxGeom = new THREE.BoxGeometry(2.5, 2.5, 2.5);
+      levelData.itemBoxes.forEach(box => {
+        const boxMat = new THREE.MeshStandardMaterial({
+          color: 0xff00ff, // Magenta
+          emissive: 0xaa00aa,
+          transparent: true,
+          opacity: 0.8,
+          wireframe: true
+        });
+        const boxMesh = new THREE.Mesh(boxGeom, boxMat);
+        boxMesh.position.set(box.x, box.y, box.z);
+        scene.add(boxMesh);
+        itemBoxMeshes.push({ mesh: boxMesh, data: box });
       });
     }
 
@@ -565,7 +616,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         }
 
         // C. Update Camera
-        updateCamera(camera, kartState, dt);
+        updateCamera(camera, kartState, dt, keys);
 
         // D. Update Visuals
         kartMesh.position.copy(kartState.pos);
@@ -624,6 +675,48 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
 
         updateParticles(dt);
 
+        // H. Weather Animation
+        if (rainSystem) {
+          rainSystem.position.copy(kartState.pos); // Follow player
+          
+          const positions = rainSystem.geometry.attributes.position.array;
+          for (let i = 0; i < positions.length; i += 3) {
+            positions[i+1] -= 80.0 * dt; // rain falls down
+            if (positions[i+1] < 0) {
+              positions[i+1] = 40; // reset to top
+            }
+          }
+          rainSystem.geometry.attributes.position.needsUpdate = true;
+        }
+
+        // H2. Update Item Boxes
+        itemBoxMeshes.forEach(ib => {
+          if (ib.data.active) {
+            ib.mesh.visible = true;
+            ib.mesh.rotation.y += 2.0 * dt;
+            ib.mesh.rotation.x += 1.0 * dt;
+          } else {
+            ib.mesh.visible = false;
+          }
+        });
+
+        // H3. Dynamic Oil Slicks (from items)
+        if (levelData.oilSlicks && levelData.oilSlicks.length > obstacleMeshes.filter(m => m.isSlick).length) {
+          // Re-render new oil slicks (quick hack for demo, ideally we spawn them dynamically)
+          levelData.oilSlicks.forEach((slick, i) => {
+            if (i >= obstacleMeshes.filter(m => m.isSlick).length) {
+              const slickGeom = new THREE.CircleGeometry(slick.radius, 16);
+              const slickMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, transparent: true, opacity: 0.85 });
+              const slickMesh = new THREE.Mesh(slickGeom, slickMat);
+              slickMesh.rotation.x = -Math.PI / 2;
+              slickMesh.position.set(slick.x, slick.y || 0.05, slick.z);
+              slickMesh.isSlick = true;
+              scene.add(slickMesh);
+              obstacleMeshes.push(slickMesh);
+            }
+          });
+        }
+
         // G. Update HUD elements directly in the DOM for maximum performance
         const countdownEl = document.getElementById('hud-countdown');
         if (countdownEl) {
@@ -675,10 +768,36 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
             boostTextEl.style.color = '#00ff88';
           }
         }
+        
+        const itemEl = document.getElementById('hud-item-value');
+        if (itemEl) {
+          if (kartState.currentItem === 'mushroom') itemEl.textContent = '🍄 Nitro';
+          else if (kartState.currentItem === 'oil_slick') itemEl.textContent = '🛢️ Aceite';
+          else itemEl.textContent = 'Vacío';
+        }
       }
 
-      // H. Render
+      // H. Render Fullscreen
+      renderer.setViewport(0, 0, width, height);
+      renderer.setScissor(0, 0, width, height);
+      renderer.setScissorTest(false);
+      renderer.clear();
       renderer.render(scene, camera);
+
+      // I. Render Minimap
+      const mapW = Math.min(width * 0.25, 200);
+      const mapH = mapW;
+      renderer.setViewport(width - mapW - 20, height - mapH - 20, mapW, mapH);
+      renderer.setScissor(width - mapW - 20, height - mapH - 20, mapW, mapH);
+      renderer.setScissorTest(true);
+      renderer.clearDepth(); // clear depth so it renders on top
+      
+      // Update minimap camera to follow player but from high above
+      minimapCamera.position.x = kartState.pos.x;
+      minimapCamera.position.z = kartState.pos.z;
+      
+      renderer.render(scene, minimapCamera);
+
       animationFrameId = requestAnimationFrame(loop);
     }
 

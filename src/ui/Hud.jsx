@@ -21,6 +21,12 @@ export default function Hud({ onExitMenu }) {
         <div id="hud-countdown" className="hud-countdown-text text-neon-glow" style={{ fontSize: '10rem', fontWeight: 'bold', color: '#ffea00', textShadow: '4px 4px 0px #000' }}></div>
       </div>
 
+      {/* Top Left below Lap: Item */}
+      <div className="hud-panel hud-item" style={{ marginTop: '10px' }}>
+        <span className="hud-label">OBJETO [E]</span>
+        <span id="hud-item-value" className="hud-value" style={{ color: '#00f3ff', fontSize: '1.2rem' }}>Vacío</span>
+      </div>
+
       {/* Bottom Right: Speedometer & Boost Bar */}
       <div className="hud-bottom-right">
         {/* Boost/Nitro Cooldown */}
@@ -43,7 +49,11 @@ export default function Hud({ onExitMenu }) {
 
       {/* Top Right: Buttons & Helpers */}
       <div className="hud-top-right">
-        <span className="hud-reset-hint">Presiona [R] para reiniciar</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px', textAlign: 'right', fontSize: '0.8rem', color: '#ccc', textShadow: '1px 1px 0 #000' }}>
+          <span>[R] Reiniciar</span>
+          <span>[C] Cambiar Cámara</span>
+          <span>[V] Retrovisor</span>
+        </div>
         <button className="hud-exit-button" onClick={onExitMenu}>
           SALIR
         </button>

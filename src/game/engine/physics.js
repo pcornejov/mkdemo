@@ -245,6 +245,13 @@ export function updatePhysics(state, keysInput, levelData, dt) {
     accelRate = 20.0;
   }
 
+  // Weather modifiers
+  let weatherSteerMod = 1.0;
+  if (levelData.weather === 'rain') {
+    weatherSteerMod = 0.6; // harder to steer in rain
+    accelRate *= 0.85; // less grip
+  }
+
   // 3. User acceleration
   let accel = 0;
   if (keysInput.forward) {
@@ -279,11 +286,33 @@ export function updatePhysics(state, keysInput, levelData, dt) {
     state.driftCharge += dt;
   }
 
+  // 4b. Use Item
+  if (keysInput.item && state.currentItem) {
+    if (state.currentItem === 'mushroom') {
+      state.boostTimer = 2.0;
+    } else if (state.currentItem === 'oil_slick') {
+      if (!levelData.oilSlicks) levelData.oilSlicks = [];
+      levelData.oilSlicks.push({
+        x: state.pos.x - Math.sin(state.angle) * 5.0,
+        z: state.pos.z - Math.cos(state.angle) * 5.0,
+        radius: 3.5
+      });
+    }
+    state.currentItem = null; // consume
+    keysInput.item = false; // consume key
+  }
+
   // 5. Steering calculations
   let steerSpeed = 2.8; // radians/second
   if (state.isDrifting) {
-    steerSpeed = 4.2; // Drift turns tighter
+    steerSpeed = 4.0; // tighter steering during drift
+    
+    // In rain, drift gives less control
+    if (levelData.weather === 'rain') {
+      steerSpeed = 2.5;
+    }
   }
+  steerSpeed *= weatherSteerMod;
 
   // Scale steering with speed
   const speedRatio = Math.min(Math.abs(state.speed) / 35.0, 1.0);
@@ -357,6 +386,25 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   resolveWallCollisions(state, levelData);
   resolveObstacleCollisions(state, levelData);
   checkBoostPads(state, levelData);
+  
+  // Item Boxes
+  if (levelData.itemBoxes) {
+    levelData.itemBoxes.forEach(box => {
+      if (box.active === false) return;
+      const dx = state.pos.x - box.x;
+      const dz = state.pos.z - box.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist < state.radius + 3.0) {
+        box.active = false; // collect box
+        // Give random item
+        const items = ['mushroom', 'oil_slick', 'mushroom'];
+        state.currentItem = items[Math.floor(Math.random() * items.length)];
+        
+        // respawn box after 5 seconds
+        setTimeout(() => { box.active = true; }, 5000);
+      }
+    });
+  }
 
   return trackInfo;
 }

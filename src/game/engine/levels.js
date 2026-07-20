@@ -245,15 +245,24 @@ export const levels = {
       { x: 150, y: 0, z: -60, width: 8, length: 6 },
       { x: -180, y: 0, z: -10, width: 10, length: 6 }
     ],
+    itemBoxes: [
+      { x: 200, y: 2, z: 90, active: true },
+      { x: 225, y: 2, z: 90, active: true },
+      { x: 250, y: 2, z: 90, active: true },
+      { x: 60, y: 2, z: -200, active: true },
+      { x: 40, y: 2, z: -200, active: true },
+      { x: -135, y: 2, z: -165, active: true }
+    ],
     rivalCount: 3,
     rivalSpeed: 95,
     startPosition: { x: 0, y: 0, z: 150 },
     startRotation: Math.PI / 2,
     ambientColor: 0x3b82f6,
-    skyColor: 0x0f172a,
-    groundColor: 0x10b981,
-    trackColor: 0x334155,
-    wallColor: 0x06b6d4
+    skyColor: 0x4a5568, // Dark gray sky for rain
+    groundColor: 0x064e3b, // Darker grass
+    trackColor: 0x1e293b,
+    wallColor: 0x06b6d4,
+    weather: 'rain'
   }
 };
 
@@ -331,12 +340,14 @@ export function getLevelData(levelId) {
       checkpoints: Array.from({length: 8}).map((_, i) => primaryPath[Math.floor((i * primaryPath.length) / 8)]),
       obstacles: cfg.obstacles,
       boostPads: cfg.boostPads,
+      itemBoxes: cfg.itemBoxes,
       rivalCount: cfg.rivalCount,
       rivalSpeed: cfg.rivalSpeed,
       ambientColor: cfg.ambientColor,
       skyColor: cfg.skyColor,
       groundColor: cfg.groundColor,
-      wallColor: cfg.wallColor
+      wallColor: cfg.wallColor,
+      weather: cfg.weather
     };
   } else {
     // Normal track
@@ -353,12 +364,14 @@ export function getLevelData(levelId) {
       checkpoints: Array.from({length: 6}).map((_, i) => primaryPath[Math.floor((i * primaryPath.length) / 6)]),
       obstacles: cfg.obstacles,
       boostPads: cfg.boostPads,
+      itemBoxes: cfg.itemBoxes,
       rivalCount: cfg.rivalCount,
       rivalSpeed: cfg.rivalSpeed,
       ambientColor: cfg.ambientColor,
       skyColor: cfg.skyColor,
       groundColor: cfg.groundColor,
-      wallColor: cfg.wallColor
+      wallColor: cfg.wallColor,
+      weather: cfg.weather
     };
   }
 }

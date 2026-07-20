@@ -8,6 +8,9 @@ export const keys = {
   drift: false,
   boost: false,
   reset: false,
+  item: false,
+  camToggle: false,
+  camRear: false,
 };
 
 function handleKeyDown(e) {
@@ -41,6 +44,19 @@ function handleKeyDown(e) {
     case 'r':
     case 'R':
       keys.reset = true;
+      break;
+    case 'e':
+    case 'E':
+    case 'Enter':
+      keys.item = true;
+      break;
+    case 'c':
+    case 'C':
+      keys.camToggle = true;
+      break;
+    case 'v':
+    case 'V':
+      keys.camRear = true;
       break;
   }
 }
@@ -76,6 +92,19 @@ function handleKeyUp(e) {
     case 'r':
     case 'R':
       keys.reset = false;
+      break;
+    case 'e':
+    case 'E':
+    case 'Enter':
+      keys.item = false;
+      break;
+    case 'c':
+    case 'C':
+      keys.camToggle = false;
+      break;
+    case 'v':
+    case 'V':
+      keys.camRear = false;
       break;
   }
 }
