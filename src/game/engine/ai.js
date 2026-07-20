@@ -110,12 +110,12 @@ export function updateRivals(rivals, playerState, levelData, dt) {
     const pHeading = new THREE.Vector2(Math.sin(playerState.angle), Math.cos(playerState.angle));
     const isPlayerBehind = pHeading.dot(distToPlayerXZ) > 0; // AI is in front of player
     
-    if (isPlayerBehind && distToPlayer > 50) {
+    if (isPlayerBehind && distToPlayer > 40) {
       // AI is far ahead, slow them down slightly so player can catch up
-      targetSpeed = Math.min(targetSpeed, playerState.speed * 0.8 + 20);
-    } else if (!isPlayerBehind && distToPlayer > 100) {
+      targetSpeed = Math.min(targetSpeed, playerState.speed * 0.8 + 10); // less aggressive rubberbanding
+    } else if (!isPlayerBehind && distToPlayer > 150) {
       // AI is far behind, speed them up
-      targetSpeed = Math.max(targetSpeed, playerState.speed * 1.1 + 10);
+      targetSpeed = Math.max(targetSpeed, playerState.speed * 1.05 + 5); // less rubberbanding speed boost
     }
 
     // Smooth speed change
@@ -196,8 +196,8 @@ export function updateRivals(rivals, playerState, levelData, dt) {
 
       // Transfer speeds / recoil
       const speedDiff = playerState.speed - rival.speed;
-      playerState.speed = Math.max(playerState.speed - speedDiff * 0.3, -5.0);
-      rival.speed = Math.max(rival.speed + speedDiff * 0.3, 0);
+      playerState.speed = Math.max(playerState.speed - speedDiff * 0.1, -5.0); // player loses less speed on bump
+      rival.speed = Math.max(rival.speed + speedDiff * 0.4, 0);
     }
   });
 

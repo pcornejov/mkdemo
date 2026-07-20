@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { initInput, keys, updateGamepad } from './engine/input.js';
 import { getLevelData } from './engine/levels.js';
-import { initKartState, updatePhysics, getTrackHeight } from './engine/physics.js';
+import { initKartState, updatePhysics, getTrackHeight, checkOnTrack } from './engine/physics.js';
 import { createKartMesh, updateKartVisuals } from './engine/kart.js';
 import { updateCamera, resetCameraState } from './engine/camera.js';
 import { createRival, updateRivals } from './engine/ai.js';
@@ -151,8 +151,9 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
       const rx = (Math.random() - 0.5) * 1200;
       const rz = (Math.random() - 0.5) * 1200;
       
-      // Avoid center track area
-      if (Math.abs(rx) < 90 && Math.abs(rz) < 90) continue;
+      // Ensure decor is not spawned on or too close to the track
+      const trackCheck = checkOnTrack(new THREE.Vector3(rx, 0, rz), levelData);
+      if (trackCheck.minDistance < 25.0) continue;
 
       const type = Math.random();
       const obj = new THREE.Group();
@@ -195,7 +196,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         rock.receiveShadow = true;
         obj.add(rock);
         
-        const s = 0.5 + Math.random() * 1.5;
+        const s = 0.3 + Math.random() * 0.7; // Smaller rocks
         obj.scale.set(s, s * 0.7, s); // squashed rock
         levelData.obstacles.push({ x: rx, z: rz, radius: s * 2.0, type: 'decor' });
       }
@@ -913,16 +914,17 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
             // Hit rivals
             rivals.forEach(r => {
               if (p.ownerId !== 'rival' && Math.pow(p.x - r.pos.x, 2) + Math.pow(p.z - r.pos.z, 2) < 9.0) {
-                r.speed = 0;
+                r.speed *= 0.3;
                 r.spinOutTimer = 1.5;
                 p.bounces = -1;
               }
             });
             
             // Hit player
-            if (p.ownerId !== 'player' && Math.pow(p.x - kartState.pos.x, 2) + Math.pow(p.z - kartState.pos.z, 2) < 9.0) {
-              kartState.speed = 0;
+            if (p.ownerId !== 'player' && Math.pow(p.x - kartState.pos.x, 2) + Math.pow(p.z - kartState.pos.z, 2) < 9.0 && (kartState.invincibilityTimer || 0) <= 0) {
+              kartState.speed *= 0.3;
               kartState.spinOutTimer = 1.5;
+              kartState.invincibilityTimer = 2.0;
               p.bounces = -1;
             }
             

@@ -159,7 +159,7 @@ function resolveWallCollisions(state, levelData) {
       if (vNormal < 0) {
         v.addScaledVector(normal, -vNormal);
         state.vel.set(v.x, state.vel.y, v.y);
-        state.speed = Math.max(state.speed * 0.7, -4.0); // improved bounce penalty
+        state.speed = Math.max(state.speed * 0.9, -2.0); // softer bounce penalty
       }
     }
   }
@@ -176,7 +176,7 @@ function resolveObstacleCollisions(state, levelData) {
       if (dist < state.radius + obs.radius) {
         if (state.speed > 10) playSound('hit');
         // Simple bounce
-        state.speed *= -0.5;
+        state.speed *= 0.5; // Changed from -0.5 to avoid backwards bouncing
         // Push out
         const angleToObs = Math.atan2(dx, dz);
         state.pos.x += Math.sin(angleToObs) * 0.5;
@@ -192,11 +192,12 @@ function resolveObstacleCollisions(state, levelData) {
       const dz = state.pos.z - slick.z;
       const dist = Math.sqrt(dx * dx + dz * dz);
       
-      if (dist < state.radius + slick.radius && state.speed > 5) {
+      if (dist < state.radius + slick.radius && state.speed > 5 && (state.invincibilityTimer || 0) <= 0) {
         playSound('hit');
         // Spin out!
         state.spinOutTimer = 1.0;
-        state.speed = 0;
+        state.invincibilityTimer = 2.0;
+        state.speed *= 0.3; // retain some sliding speed
       }
     });
   }
@@ -219,20 +220,23 @@ function checkBoostPads(state, levelData) {
 }
 
 export function updatePhysics(state, keysInput, levelData, dt) {
-  // Spin-out logic
-  if (state.spinOutTimer > 0) {
-    state.spinOutTimer -= dt;
-    state.speed = 0; // stop moving
-    state.angle += 15.0 * dt; // spin rapidly
-    return; // skip normal movement
-  }
-
   // 1. Cooldowns
+  if (state.invincibilityTimer > 0) state.invincibilityTimer -= dt;
   if (state.boostTimer > 0) {
     state.boostTimer -= dt;
   }
   if (state.boostCooldown > 0) {
     state.boostCooldown -= dt;
+  }
+
+  // Spin-out logic
+  if (state.spinOutTimer > 0) {
+    state.spinOutTimer -= dt;
+    state.speed *= 0.95; // slide to a halt
+    state.angle += 15.0 * dt; // spin rapidly
+    state.pos.x += Math.sin(state.angle) * state.speed * dt;
+    state.pos.z += Math.cos(state.angle) * state.speed * dt;
+    return; // skip normal movement
   }
 
   // Slipstream (Drafting) mechanic
@@ -277,8 +281,8 @@ export function updatePhysics(state, keysInput, levelData, dt) {
     maxSpeed = 145.0;
     accelRate = 90.0;
   } else if (state.offTrack) {
-    maxSpeed = 30.0;
-    accelRate = 20.0;
+    maxSpeed = 45.0;
+    accelRate = 25.0;
   }
 
   // Weather modifiers
@@ -366,9 +370,9 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   }
 
   // 5. Steering calculations
-  let steerSpeed = 2.8; // radians/second
+  let steerSpeed = 3.2; // increased steering responsiveness
   if (state.isDrifting) {
-    steerSpeed = 4.0; // tighter steering during drift
+    steerSpeed = 4.2; // tighter steering during drift
     
     // In rain, drift gives less control
     if (levelData.weather === 'rain') {
@@ -394,7 +398,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   if (accel !== 0) {
     state.speed += accel * dt;
   } else {
-    const friction = state.offTrack ? 4.0 : 1.6;
+    const friction = state.offTrack ? 2.5 : 1.6; // less off-track friction
     state.speed -= state.speed * friction * dt;
     if (Math.abs(state.speed) < 0.1) state.speed = 0;
   }

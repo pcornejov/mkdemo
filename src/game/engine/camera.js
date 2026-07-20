@@ -70,11 +70,6 @@ export function updateCamera(camera, kartState, dt, keys) {
 
   if (Math.abs(kartState.speed) > 110) {
     baseFov += (Math.abs(kartState.speed) - 110) * 0.8;
-    
-    // Shake
-    const shakeAmt = (Math.abs(kartState.speed) - 110) * 0.015;
-    camera.position.x += (Math.random() - 0.5) * shakeAmt;
-    camera.position.y += (Math.random() - 0.5) * shakeAmt;
   }
   
   if (kartState.spinOutTimer > 0) {
