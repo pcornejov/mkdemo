@@ -689,8 +689,13 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         }
 
         // F. Particles Emission (Visual effects)
+        // Off-road dirt
+        if (kartState.offTrack && Math.abs(kartState.speed) > 10.0 && Math.random() > 0.5) {
+          spawnParticles(kartState.pos, 0x4a3b2c, 2, 0.5); // Brown dirt
+        }
+        
         // Wheels positions for drift sparks & smoke
-        if (kartState.isDrifting && Math.abs(kartState.speed) > 10.0) {
+        if (kartState.isDrifting && Math.abs(kartState.speed) > 10.0 && !kartState.offTrack) {
           // Blue/yellow drift sparks depending on drift charge
           const sparkColor = kartState.driftCharge > 0.8 ? 0xffea00 : 0x00f3ff;
           spawnParticles(kartState.pos, sparkColor, 2, 0.5);
@@ -711,12 +716,13 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           skidIdx = (skidIdx + 1) % maxSkids;
         }
 
-        // Exhaust boost fire
-        if (kartState.boostTimer > 0) {
-          // Cyan boost fire
+        // Exhaust boost fire (or Slipstream)
+        if (kartState.boostTimer > 0 || (kartState.draftCharge && kartState.draftCharge > 0.5)) {
+          // Cyan boost fire, or purple for slipstream
+          const flameColor = kartState.boostTimer > 0 ? 0x00ffff : 0xaa00ff;
           const backOffsetDir = new THREE.Vector3(-Math.sin(kartState.angle), 0.3, -Math.cos(kartState.angle));
           const flamePos = kartState.pos.clone().addScaledVector(backOffsetDir, 1.2);
-          spawnParticles(flamePos, 0x00ffff, 3, 1.2);
+          spawnParticles(flamePos, flameColor, 3, 1.2);
         }
 
         updateParticles(dt);
