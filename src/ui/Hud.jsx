@@ -4,16 +4,27 @@ import React from 'react';
 export default function Hud({ onExitMenu }) {
   return (
     <div className="hud-overlay">
-      {/* Top Left: Lap Counter */}
-      <div className="hud-panel hud-lap">
-        <span className="hud-label">VUELTA</span>
-        <span id="hud-lap-value" className="hud-value">1 / 2</span>
-      </div>
-
-      {/* Top Center: Timer */}
-      <div className="hud-panel hud-timer">
-        <span className="hud-label">TIEMPO</span>
-        <span id="hud-time-value" className="hud-value font-mono">00:00.00</span>
+      {/* Top Left: Lap Counter & Timer */}
+      <div className="hud-top-left">
+        <div className="hud-panel hud-lap">
+          <span className="hud-label">VUELTA</span>
+          <span id="hud-lap-value" className="hud-value">1/3</span>
+        </div>
+        
+        <div className="hud-panel hud-timer">
+          <span className="hud-label">TIEMPO</span>
+          <span id="hud-time-value" className="hud-value" style={{ fontSize: '20px' }}>00:00.00</span>
+        </div>
+        
+        <div className="hud-panel hud-item" style={{ marginTop: '10px', height: '60px' }}>
+          <span className="hud-label">OBJETO [Q]</span>
+          <span id="hud-item-value" className="hud-value" style={{ color: '#00f3ff', fontSize: '1.2rem' }}>Vacío</span>
+        </div>
+        
+        <div className="hud-panel hud-lap-timer" style={{ marginTop: '10px' }}>
+          <span className="hud-label">ÚLTIMA VUELTA</span>
+          <span id="hud-last-lap-value" className="hud-value" style={{ fontSize: '1.2rem', color: '#ffea00' }}>--:--.--</span>
+        </div>
       </div>
 
       {/* Center Screen: Countdown */}
@@ -21,11 +32,6 @@ export default function Hud({ onExitMenu }) {
         <div id="hud-countdown" className="hud-countdown-text text-neon-glow" style={{ fontSize: '10rem', fontWeight: 'bold', color: '#ffea00', textShadow: '4px 4px 0px #000' }}></div>
       </div>
 
-      {/* Top Left below Lap: Item */}
-      <div className="hud-panel hud-item" style={{ position: 'absolute', top: '105px', left: '25px', minWidth: '120px' }}>
-        <span className="hud-label">OBJETO [E]</span>
-        <span id="hud-item-value" className="hud-value" style={{ color: '#00f3ff', fontSize: '1.2rem' }}>Vacío</span>
-      </div>
 
       {/* Bottom Right: Speedometer & Boost Bar */}
       <div className="hud-bottom-right">
@@ -48,12 +54,15 @@ export default function Hud({ onExitMenu }) {
       </div>
       
       {/* Minimap Overlay (Top right, bottom left relative to viewport) */}
-      <div style={{ position: 'absolute', bottom: '20px', left: '20px', width: '200px', height: '200px', pointerEvents: 'none' }}>
+      <div id="minimap-container" style={{ position: 'absolute', bottom: '20px', left: '20px', width: '200px', height: '200px', pointerEvents: 'none' }}>
         <div id="minimap-player" style={{ 
           position: 'absolute', top: '50%', left: '50%', width: 0, height: 0,
           borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '16px solid #00f3ff',
           filter: 'drop-shadow(2px 2px 0px #000)', transformOrigin: 'center center'
         }}></div>
+        <div id="minimap-rival-0" style={{ position: 'absolute', width: '8px', height: '8px', background: '#ff6600', borderRadius: '50%', filter: 'drop-shadow(1px 1px 0px #000)', display: 'none' }}></div>
+        <div id="minimap-rival-1" style={{ position: 'absolute', width: '8px', height: '8px', background: '#9900ff', borderRadius: '50%', filter: 'drop-shadow(1px 1px 0px #000)', display: 'none' }}></div>
+        <div id="minimap-rival-2" style={{ position: 'absolute', width: '8px', height: '8px', background: '#ff0055', borderRadius: '50%', filter: 'drop-shadow(1px 1px 0px #000)', display: 'none' }}></div>
       </div>
 
       {/* Top Right: Buttons & Helpers */}

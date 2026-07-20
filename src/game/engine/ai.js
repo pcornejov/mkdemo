@@ -136,6 +136,32 @@ export function updateRivals(rivals, playerState, levelData, dt) {
     // Animate wheels
     updateKartVisuals(rival.mesh, rival.speed, steerInput * Math.min(Math.abs(diff), 1.0), dt, false);
 
+    // AI Item Boxes Collection
+    if (levelData.itemBoxes) {
+      levelData.itemBoxes.forEach(box => {
+        if (!box.active) return;
+        const bx = rival.pos.x - box.x;
+        const bz = rival.pos.z - box.z;
+        if (Math.sqrt(bx * bx + bz * bz) < rival.radius + 3.0) {
+          box.active = false;
+          const items = ['mushroom', 'oil_slick', 'mushroom'];
+          rival.currentItem = items[Math.floor(Math.random() * items.length)];
+          setTimeout(() => { box.active = true; }, 5000);
+        }
+      });
+    }
+
+    // AI Item Usage
+    if (rival.currentItem && Math.random() < 0.02) { // 2% chance per frame to use
+      if (rival.currentItem === 'mushroom') {
+        rival.speed = Math.max(rival.speed, 120);
+      } else if (rival.currentItem === 'oil_slick') {
+        if (!levelData.oilSlicks) levelData.oilSlicks = [];
+        levelData.oilSlicks.push({ x: rival.pos.x, z: rival.pos.z, radius: 2.0 });
+      }
+      rival.currentItem = null;
+    }
+
     // Collisions with Oil Slicks for AI
     if (levelData.oilSlicks) {
       levelData.oilSlicks.forEach(slick => {

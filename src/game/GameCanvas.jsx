@@ -555,9 +555,17 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     const totalLaps = levelData.laps;
     let nextCheckpointIndex = 0;
     let elapsedTime = 0;
+    let currentLapTime = 0;
     let finished = false;
     let raceState = 'countdown'; // 'countdown', 'racing'
     let countdownTimer = 4.0;
+
+    function formatTime(t) {
+      const mins = Math.floor(t / 60);
+      const secs = Math.floor(t % 60);
+      const ms = Math.floor((t % 1) * 100);
+      return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+    }
 
     onLapChange(currentLap, totalLaps);
 
@@ -580,6 +588,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         currentLap = 1;
         nextCheckpointIndex = 0;
         elapsedTime = 0;
+        currentLapTime = 0;
         finished = false;
         raceState = 'countdown';
         countdownTimer = 4.0;
@@ -624,6 +633,11 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
 
           if (countdownTimer <= 0) {
             raceState = 'racing';
+            // Rocket start! If pressing forward precisely at the start (or within last 0.3s)
+            if (keys.forward) {
+              kartState.boostTimer = 2.0; // Huge 2 second boost!
+              kartState.speed = 120.0; // Instantly hit max speed
+            }
           } else {
             keys.up = false; keys.down = false; keys.left = false; keys.right = false;
             kartState.speed = 0;
@@ -631,6 +645,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           }
         } else {
           elapsedTime += dt;
+          currentLapTime += dt;
         }
 
         // A. Update Physics
@@ -683,6 +698,9 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
               onFinish(elapsedTime);
             } else {
               currentLap += 1;
+              const lastLapEl = document.getElementById('hud-last-lap-value');
+              if (lastLapEl) lastLapEl.textContent = formatTime(currentLapTime);
+              currentLapTime = 0;
               onLapChange(currentLap, totalLaps);
             }
           }
@@ -793,10 +811,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         const timeEl = document.getElementById('hud-time-value');
         if (timeEl) {
-          const mins = Math.floor(elapsedTime / 60);
-          const secs = Math.floor(elapsedTime % 60);
-          const ms = Math.floor((elapsedTime % 1) * 100);
-          timeEl.textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+          timeEl.textContent = formatTime(currentLapTime);
         }
         
         const speedEl = document.getElementById('hud-speed-value');
@@ -832,6 +847,24 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         if (minimapPlayerEl) {
           minimapPlayerEl.style.transform = `translate(-50%, -50%) rotate(${-kartState.angle}rad)`;
         }
+        
+        // Update Rivals on Minimap
+        rivals.forEach((rival, i) => {
+          const rEl = document.getElementById(`minimap-rival-${i}`);
+          if (rEl) {
+            const rx = rival.pos.x - kartState.pos.x;
+            const rz = rival.pos.z - kartState.pos.z;
+            // Minimap view is 160x160 units (-80 to 80), mapped to 200x200 pixels
+            if (Math.abs(rx) <= 80 && Math.abs(rz) <= 80) {
+              rEl.style.display = 'block';
+              rEl.style.left = `${(rx + 80) * (200 / 160)}px`;
+              rEl.style.top = `${(rz + 80) * (200 / 160)}px`;
+              rEl.style.transform = 'translate(-50%, -50%)';
+            } else {
+              rEl.style.display = 'none';
+            }
+          }
+        });
       }
 
       // H. Render Fullscreen
