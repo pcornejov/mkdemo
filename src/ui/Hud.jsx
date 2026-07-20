@@ -46,6 +46,15 @@ export default function Hud({ onExitMenu }) {
           <span className="hud-speed-unit">KM/H</span>
         </div>
       </div>
+      
+      {/* Minimap Overlay (Top right, bottom left relative to viewport) */}
+      <div style={{ position: 'absolute', bottom: '20px', left: '20px', width: '200px', height: '200px', pointerEvents: 'none' }}>
+        <div id="minimap-player" style={{ 
+          position: 'absolute', top: '50%', left: '50%', width: 0, height: 0,
+          borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderBottom: '16px solid #00f3ff',
+          filter: 'drop-shadow(2px 2px 0px #000)', transformOrigin: 'center center'
+        }}></div>
+      </div>
 
       {/* Top Right: Buttons & Helpers */}
       <div className="hud-top-right">

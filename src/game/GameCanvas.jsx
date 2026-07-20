@@ -635,6 +635,10 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
 
         // A. Update Physics
         const steerDir = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
+        
+        // Pass rivals position for slipstream mechanics
+        levelData.rivalsPos = rivals.map(r => r.pos);
+        
         updatePhysics(kartState, keys, levelData, dt);
 
         // B. Update Rivals AI
@@ -817,6 +821,11 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           else if (kartState.currentItem === 'oil_slick') itemEl.textContent = '🛢️ Aceite';
           else itemEl.textContent = 'Vacío';
         }
+        
+        const minimapPlayerEl = document.getElementById('minimap-player');
+        if (minimapPlayerEl) {
+          minimapPlayerEl.style.transform = `translate(-50%, -50%) rotate(${-kartState.angle}rad)`;
+        }
       }
 
       // H. Render Fullscreen
@@ -829,8 +838,8 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
       // I. Render Minimap
       const mapW = Math.min(width * 0.25, 200);
       const mapH = mapW;
-      renderer.setViewport(width - mapW - 20, height - mapH - 20, mapW, mapH);
-      renderer.setScissor(width - mapW - 20, height - mapH - 20, mapW, mapH);
+      renderer.setViewport(20, 20, mapW, mapH);
+      renderer.setScissor(20, 20, mapW, mapH);
       renderer.setScissorTest(true);
       renderer.clearDepth(); // clear depth so it renders on top
       

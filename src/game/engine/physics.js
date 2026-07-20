@@ -233,6 +233,37 @@ export function updatePhysics(state, keysInput, levelData, dt) {
     state.boostCooldown -= dt;
   }
 
+  // Slipstream (Drafting) mechanic
+  if (levelData.rivalsPos && state.speed > 50) {
+    let drafting = false;
+    levelData.rivalsPos.forEach(rPos => {
+      // Check if player is right behind a rival
+      const dist = state.pos.distanceTo(rPos);
+      if (dist > 5 && dist < 25) {
+        // Check angle
+        const dx = rPos.x - state.pos.x;
+        const dz = rPos.z - state.pos.z;
+        const angleToRival = Math.atan2(dx, dz);
+        let angleDiff = Math.abs(angleToRival - state.angle);
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        if (Math.abs(angleDiff) < 0.2) {
+          drafting = true;
+        }
+      }
+    });
+    
+    if (drafting) {
+      state.draftCharge = (state.draftCharge || 0) + dt;
+      if (state.draftCharge > 1.5) {
+        state.boostTimer = 0.8; // Drafting boost!
+        playSound('boost');
+        state.draftCharge = 0;
+      }
+    } else {
+      state.draftCharge = Math.max((state.draftCharge || 0) - dt, 0);
+    }
+  }
+
   // 2. Terrain check
   const trackInfo = checkOnTrack(state.pos, levelData);
   state.offTrack = !trackInfo.onTrack;
