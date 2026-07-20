@@ -1,0 +1,362 @@
+// src/game/engine/physics.js
+import * as THREE from 'three';
+
+export function initKartState(levelData) {
+  return {
+    pos: new THREE.Vector3(
+      levelData.startPosition.x,
+      levelData.startPosition.y,
+      levelData.startPosition.z
+    ),
+    vel: new THREE.Vector3(0, 0, 0),
+    vy: 0,
+    angle: levelData.startRotation,
+    speed: 0,
+    radius: 1.2,
+    isGrounded: true,
+    isDrifting: false,
+    driftDir: 0,
+    driftCharge: 0,
+    boostTimer: 0,
+    boostCooldown: 0,
+    spinOutTimer: 0,
+    offTrack: false
+  };
+}
+
+export function checkOnTrack(pos, levelData) {
+  let minDistance = Infinity;
+  let closestIdx = -1;
+  let isShortcut = false;
+
+  // Check main path
+  for (let i = 0; i < levelData.pathPoints.length; i++) {
+    const d = pos.distanceTo(levelData.pathPoints[i]);
+    if (d < minDistance) {
+      minDistance = d;
+      closestIdx = i;
+    }
+  }
+
+  // Check shortcut if it exists
+  if (levelData.shortcutPathPoints) {
+    for (let i = 0; i < levelData.shortcutPathPoints.length; i++) {
+      const d = pos.distanceTo(levelData.shortcutPathPoints[i]);
+      if (d < minDistance) {
+        minDistance = d;
+        closestIdx = i;
+        isShortcut = true;
+      }
+    }
+  }
+
+  // Widths
+  const trackWidth = isShortcut ? 6.0 : 15.0;
+  const margin = 2.0; // Allow slight drift off the edge before declaring off-track
+  const onTrack = minDistance <= (trackWidth / 2 + margin);
+
+  return { onTrack, closestIdx, isShortcut, minDistance };
+}
+
+export function getTrackHeight(pos, levelData) {
+  let minD = Infinity;
+  let height = 0;
+  
+  const path = levelData.pathPoints;
+  const n = path.length;
+  
+  // Find height from main path segments
+  for (let i = 0; i < n; i++) {
+    const p1 = path[i];
+    const p2 = path[(i + 1) % n];
+    
+    // Work in 3D to get correct ramp interpolation
+    const ab = p2.clone().sub(p1);
+    const ap = pos.clone().sub(p1);
+    
+    let t = ap.dot(ab) / ab.lengthSq();
+    t = Math.max(0, Math.min(1, t));
+    
+    const closestPoint = p1.clone().addScaledVector(ab, t);
+    const d = pos.distanceTo(closestPoint);
+    
+    if (d < minD) {
+      minD = d;
+      height = closestPoint.y;
+    }
+  }
+  
+  // Also check shortcut path if applicable
+  if (levelData.shortcutPathPoints) {
+    const sPath = levelData.shortcutPathPoints;
+    const sn = sPath.length;
+    for (let i = 0; i < sn; i++) {
+      const p1 = sPath[i];
+      const p2 = sPath[(i + 1) % sn];
+      
+      const ab = p2.clone().sub(p1);
+      const ap = pos.clone().sub(p1);
+      
+      let t = ap.dot(ab) / ab.lengthSq();
+      t = Math.max(0, Math.min(1, t));
+      
+      const closestPoint = p1.clone().addScaledVector(ab, t);
+      const d = pos.distanceTo(closestPoint);
+      
+      if (d < minD) {
+        minD = d;
+        height = closestPoint.y;
+      }
+    }
+  }
+  
+  return height;
+}
+
+function resolveWallCollisions(state, levelData) {
+  const R = state.radius;
+  const K = new THREE.Vector2(state.pos.x, state.pos.z);
+  const v = new THREE.Vector2(state.vel.x, state.vel.z);
+  
+  const walls = [...levelData.innerWalls, ...levelData.outerWalls];
+  
+  for (let i = 0; i < walls.length; i++) {
+    const wall = walls[i];
+    
+    // Check if height matches
+    const wallYMin = Math.min(wall.y1, wall.y2) - 1.0;
+    const wallYMax = Math.max(wall.y1, wall.y2) + 6.0;
+    if (state.pos.y < wallYMin || state.pos.y > wallYMax) {
+      continue;
+    }
+    
+    const ab = wall.p2.clone().sub(wall.p1);
+    const ap = K.clone().sub(wall.p1);
+    
+    let t = ap.dot(ab) / ab.lengthSq();
+    t = Math.max(0, Math.min(1, t));
+    
+    const closest = wall.p1.clone().addScaledVector(ab, t);
+    const d = K.distanceTo(closest);
+    
+    if (d < R) {
+      const normal = K.clone().sub(closest);
+      if (normal.lengthSq() > 0.0001) {
+        normal.normalize();
+      } else {
+        normal.set(-ab.y, ab.x).normalize();
+      }
+      
+      // Reposition kart
+      K.copy(closest).addScaledVector(normal, R);
+      state.pos.x = K.x;
+      state.pos.z = K.y;
+      
+      // Adjust velocity
+      const vNormal = v.dot(normal);
+      if (vNormal < 0) {
+        v.addScaledVector(normal, -vNormal);
+        state.vel.set(v.x, state.vel.y, v.y);
+        state.speed = Math.max(state.speed * 0.4, -4.0); // bounce penalty
+      }
+    }
+  }
+}
+
+function resolveObstacleCollisions(state, levelData) {
+  // Collisions with Obstacles
+  if (levelData.obstacles) {
+    levelData.obstacles.forEach(obs => {
+      const dx = state.pos.x - obs.x;
+      const dz = state.pos.z - obs.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      
+      if (dist < state.radius + obs.radius) {
+        // Simple bounce
+        state.speed *= -0.5;
+        // Push out
+        const angleToObs = Math.atan2(dx, dz);
+        state.pos.x += Math.sin(angleToObs) * 0.5;
+        state.pos.z += Math.cos(angleToObs) * 0.5;
+      }
+    });
+  }
+
+  // Collisions with Oil Slicks
+  if (levelData.oilSlicks) {
+    levelData.oilSlicks.forEach(slick => {
+      const dx = state.pos.x - slick.x;
+      const dz = state.pos.z - slick.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      
+      if (dist < state.radius + slick.radius && state.speed > 5) {
+        // Spin out!
+        state.spinOutTimer = 1.0;
+        state.speed = 0;
+      }
+    });
+  }
+}
+
+function checkBoostPads(state, levelData) {
+  if (!levelData.boostPads) return;
+  
+  for (let i = 0; i < levelData.boostPads.length; i++) {
+    const pad = levelData.boostPads[i];
+    const padPos = new THREE.Vector3(pad.x, pad.y, pad.z);
+    const dist = state.pos.distanceTo(padPos);
+    
+    // Check if player crosses the boost pad area
+    if (dist < 4.5) {
+      state.boostTimer = 1.2; // 1.2s boost
+    }
+  }
+}
+
+export function updatePhysics(state, keysInput, levelData, dt) {
+  // Spin-out logic
+  if (state.spinOutTimer > 0) {
+    state.spinOutTimer -= dt;
+    state.speed = 0; // stop moving
+    state.angle += 15.0 * dt; // spin rapidly
+    return; // skip normal movement
+  }
+
+  // 1. Cooldowns
+  if (state.boostTimer > 0) {
+    state.boostTimer -= dt;
+  }
+  if (state.boostCooldown > 0) {
+    state.boostCooldown -= dt;
+  }
+
+  // 2. Terrain check
+  const trackInfo = checkOnTrack(state.pos, levelData);
+  state.offTrack = !trackInfo.onTrack;
+
+  let maxSpeed = 30.0;
+  let accelRate = 18.0;
+  
+  if (state.boostTimer > 0) {
+    maxSpeed = 50.0;
+    accelRate = 45.0;
+  } else if (state.offTrack) {
+    maxSpeed = 10.0;
+    accelRate = 8.0;
+  }
+
+  // 3. User acceleration
+  let accel = 0;
+  if (keysInput.forward) {
+    accel = accelRate;
+  } else if (keysInput.backward) {
+    accel = -accelRate;
+  }
+
+  // 4. Drift logic
+  const steerDir = (keysInput.left ? -1 : 0) + (keysInput.right ? 1 : 0);
+  
+  if (keysInput.drift && steerDir !== 0 && Math.abs(state.speed) > 12.0 && !state.offTrack) {
+    if (!state.isDrifting) {
+      state.isDrifting = true;
+      state.driftDir = steerDir;
+      state.driftCharge = 0;
+    }
+  }
+
+  if (!keysInput.drift || Math.abs(state.speed) < 8.0 || state.offTrack) {
+    if (state.isDrifting) {
+      // Trigger mini-boost on release if drift was held long enough
+      if (state.driftCharge > 0.8) {
+        state.boostTimer = 0.8;
+      }
+      state.isDrifting = false;
+      state.driftDir = 0;
+    }
+  }
+
+  if (state.isDrifting) {
+    state.driftCharge += dt;
+  }
+
+  // 5. Steering calculations
+  let steerSpeed = 2.6; // radians/second
+  if (state.isDrifting) {
+    steerSpeed = 3.6; // Drift turns tighter
+  }
+
+  // Scale steering with speed
+  const speedRatio = Math.min(Math.abs(state.speed) / 10.0, 1.0);
+  const steerFactor = steerSpeed * speedRatio * Math.sign(state.speed);
+  
+  // Update angle
+  state.angle -= steerDir * steerFactor * dt;
+
+  // Space manual boost
+  if (keysInput.boost && state.boostCooldown <= 0 && !state.offTrack) {
+    state.boostTimer = 1.0;
+    state.boostCooldown = 4.0; // 4 second cooldown
+  }
+
+  // 6. Update speed
+  if (accel !== 0) {
+    state.speed += accel * dt;
+  } else {
+    const friction = state.offTrack ? 4.0 : 1.6;
+    state.speed -= state.speed * friction * dt;
+    if (Math.abs(state.speed) < 0.1) state.speed = 0;
+  }
+
+  // Smooth brake response
+  if (keysInput.backward && state.speed > 0) {
+    state.speed -= 30.0 * dt; // brake deceleration
+  }
+
+  // Clamp speed to terrain max
+  if (state.offTrack && state.speed > maxSpeed && state.boostTimer <= 0) {
+    state.speed -= (state.speed - maxSpeed) * 6.0 * dt;
+  }
+
+  const minSpeed = -10.0;
+  state.speed = Math.max(minSpeed, Math.min(maxSpeed, state.speed));
+
+  // 7. Calculate velocity vector
+  const headingX = Math.sin(state.angle);
+  const headingZ = Math.cos(state.angle);
+  const facingDir = new THREE.Vector3(headingX, 0, headingZ);
+
+  // Drift slip
+  const lerpFactor = state.isDrifting ? 1.8 : 8.0;
+  const targetVel = facingDir.clone().multiplyScalar(state.speed);
+  state.vel.lerp(targetVel, lerpFactor * dt);
+
+  // Position update
+  state.pos.x += state.vel.x * dt;
+  state.pos.z += state.vel.z * dt;
+
+  // 8. Height / Gravity
+  const trackHeight = getTrackHeight(state.pos, levelData);
+  
+  if (state.pos.y > trackHeight + 0.05) {
+    state.vy -= 22.0 * dt;
+    state.pos.y += state.vy * dt;
+    state.isGrounded = false;
+    
+    if (state.pos.y <= trackHeight) {
+      state.pos.y = trackHeight;
+      state.vy = 0;
+      state.isGrounded = true;
+    }
+  } else {
+    state.pos.y = trackHeight;
+    state.vy = 0;
+    state.isGrounded = true;
+  }
+
+  // 9. Resolve colliders
+  resolveWallCollisions(state, levelData);
+  resolveObstacleCollisions(state, levelData);
+  checkBoostPads(state, levelData);
+
+  return trackInfo;
+}
