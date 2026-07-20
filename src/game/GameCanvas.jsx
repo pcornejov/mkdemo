@@ -7,6 +7,7 @@ import { initKartState, updatePhysics, getTrackHeight } from './engine/physics.j
 import { createKartMesh, updateKartVisuals } from './engine/kart.js';
 import { updateCamera, resetCameraState } from './engine/camera.js';
 import { createRival, updateRivals } from './engine/ai.js';
+import { playSound, engineSound } from './engine/sfx.js';
 
 // Helper to create visual double-sided 3D neon walls from line segments
 function createVisualWalls(walls, colorHex) {
@@ -574,12 +575,32 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
 
     // 12. Imperative Loop
     let lastTime = performance.now();
+    let isPaused = false;
+    let animationFrameId;
 
     function loop(time) {
       const dt = Math.min((time - lastTime) / 1000, 0.1); // limit dt to 100ms
       lastTime = time;
       
       updateGamepad();
+      engineSound.update(kartState.speed);
+
+      if (keys.pauseTriggered) {
+        keys.pauseTriggered = false;
+        isPaused = !isPaused;
+        const pauseEl = document.getElementById('hud-pause-overlay');
+        if (pauseEl) {
+          pauseEl.style.display = isPaused ? 'flex' : 'none';
+        }
+      }
+
+      if (isPaused) {
+        engineSound.stop();
+        animationFrameId = requestAnimationFrame(loop);
+        return;
+      } else {
+        engineSound.start();
+      }
 
       // Handle level reset (R key)
       if (keys.reset) {
@@ -659,11 +680,18 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         // Pass rivals position for slipstream mechanics
         levelData.rivalsPos = rivals.map(r => r.pos);
         
-        updatePhysics(kartState, keys, levelData, dt);
-
         // B. Update Rivals AI
         if (raceState === 'racing') {
           updateRivals(rivals, kartState, levelData, dt);
+        }
+
+        const prevSpeed = kartState.speed;
+        updatePhysics(kartState, keys, levelData, dt);
+        
+        // Check for sudden decelerations (Wall hit)
+        if (prevSpeed > 60 && kartState.speed < prevSpeed - 30) {
+          spawnParticles(kartState.pos, 0xffaa00, 8, 2.0); // Big orange sparks
+          playSound('hit');
         }
 
         // C. Update Camera
@@ -679,6 +707,15 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           -steerDir * (kartState.isDrifting ? 0.15 : 0.08),
           10.0 * dt
         );
+        
+        // Spin-out squash and stretch
+        if (kartState.spinOutTimer > 0) {
+          const squash = 1.0 - Math.abs(Math.sin(kartState.spinOutTimer * 20)) * 0.3;
+          const stretch = 1.0 + Math.abs(Math.sin(kartState.spinOutTimer * 20)) * 0.3;
+          kartMesh.scale.set(stretch, squash, stretch);
+        } else {
+          kartMesh.scale.setScalar(1.0);
+        }
 
         updateKartVisuals(
           kartMesh,
@@ -731,7 +768,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         // F. Particles Emission (Visual effects)
         // Off-road dirt
         if (kartState.offTrack && Math.abs(kartState.speed) > 10.0 && Math.random() > 0.5) {
-          spawnParticles(kartState.pos, 0x4a3b2c, 2, 0.5); // Brown dirt
+          spawnParticles(kartState.pos, levelData.groundColor, 2, 0.5); // Ground color dirt
         }
         
         // Wheels positions for drift sparks & smoke
@@ -819,6 +856,10 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
             ib.mesh.visible = true;
             ib.mesh.rotation.y += 2.0 * dt;
             ib.mesh.rotation.x += 1.0 * dt;
+            
+            if (ib.data.scale === undefined) ib.data.scale = 1;
+            ib.data.scale = THREE.MathUtils.lerp(ib.data.scale, 1.0, 5.0 * dt);
+            ib.mesh.scale.setScalar(ib.data.scale);
           } else {
             ib.mesh.visible = false;
           }
@@ -901,7 +942,8 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
                 scene.add(mesh);
                 projectileMeshes.set(p, mesh);
               }
-              mesh.position.set(p.x, getTrackHeight(p, levelData) + 1.2, p.z);
+              const bounceY = Math.abs(Math.sin(elapsedTime * 10)) * 2.0;
+              mesh.position.set(p.x, getTrackHeight(p, levelData) + 1.2 + bounceY, p.z);
               mesh.rotation.y += 10.0 * dt;
             }
           }
@@ -948,11 +990,13 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
             boostBarEl.style.backgroundColor = '#ffea00';
             boostTextEl.textContent = 'RECARGANDO';
             boostTextEl.style.color = '#ffea00';
+            boostTextEl.classList.remove('pulse-glow');
           } else {
             boostBarEl.style.width = '100%';
             boostBarEl.style.backgroundColor = '#00ff88';
             boostTextEl.textContent = 'READY';
             boostTextEl.style.color = '#00ff88';
+            boostTextEl.classList.add('pulse-glow');
           }
         }
         
@@ -1053,6 +1097,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     // 14. Clean-up (Dispose Geometries and Materials to prevent leaks)
     return () => {
       cancelAnimationFrame(animationFrameId);
+      engineSound.stop();
       cleanupInput();
       window.removeEventListener('resize', handleResize);
 

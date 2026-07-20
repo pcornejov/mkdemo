@@ -46,3 +46,43 @@ export function playSound(type) {
     osc.stop(now + 0.25);
   }
 }
+
+// Engine Sound loop
+let engineOsc;
+let engineGain;
+export const engineSound = {
+  start: () => {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (engineOsc) return;
+    engineOsc = audioCtx.createOscillator();
+    engineGain = audioCtx.createGain();
+    engineOsc.type = 'sawtooth';
+    engineOsc.frequency.value = 60;
+    engineGain.gain.value = 0.05;
+    
+    // Add lowpass filter to make it sound like an engine rumble
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 400;
+
+    engineOsc.connect(filter);
+    filter.connect(engineGain);
+    engineGain.connect(audioCtx.destination);
+    
+    engineOsc.start();
+  },
+  update: (speed) => {
+    if (engineOsc && audioCtx.state === 'running') {
+      const pitch = 60 + Math.abs(speed) * 1.5;
+      engineOsc.frequency.setTargetAtTime(pitch, audioCtx.currentTime, 0.1);
+    }
+  },
+  stop: () => {
+    if (engineOsc) {
+      engineOsc.stop();
+      engineOsc.disconnect();
+      engineGain.disconnect();
+      engineOsc = null;
+    }
+  }
+};

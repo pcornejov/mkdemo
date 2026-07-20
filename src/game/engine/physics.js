@@ -472,13 +472,14 @@ export function updatePhysics(state, keysInput, levelData, dt) {
       const dist = Math.sqrt(dx * dx + dz * dz);
       if (dist < state.radius + 3.0) {
         box.active = false; // collect box
+        box.scale = 0;
         playSound('item');
         // Give random item
         const items = ['mushroom', 'oil_slick', 'shell', 'mushroom'];
         state.currentItem = items[Math.floor(Math.random() * items.length)];
         
         // respawn box after 5 seconds
-        setTimeout(() => { box.active = true; }, 5000);
+        setTimeout(() => { box.active = true; box.scale = 0; }, 5000);
       }
     });
   }

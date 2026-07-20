@@ -8,12 +8,14 @@ export const keys = {
   drift: false,
   boost: false,
   reset: false,
-  item: false,
-  camToggle: false,
-  camRear: false,
+  pause: false,
+  pauseTriggered: false
 };
 
+import { engineSound } from './sfx.js';
+
 function handleKeyDown(e) {
+  engineSound.start();
   switch (e.key) {
     case 'w':
     case 'W':
@@ -63,6 +65,14 @@ function handleKeyDown(e) {
     case 'v':
     case 'V':
       keys.camRear = true;
+      break;
+    case 'Escape':
+    case 'p':
+    case 'P':
+      if (!keys.pause) {
+        keys.pauseTriggered = true;
+        keys.pause = true;
+      }
       break;
   }
 }
@@ -118,6 +128,11 @@ function handleKeyUp(e) {
     case 'V':
       keys.camRear = false;
       break;
+    case 'Escape':
+    case 'p':
+    case 'P':
+      keys.pause = false;
+      break;
   }
 }
 
@@ -139,6 +154,7 @@ export function updateGamepad() {
   for (let i = 0; i < gamepads.length; i++) {
     const gp = gamepads[i];
     if (gp) {
+      engineSound.start();
       // Map right trigger to forward (accelerate)
       if (gp.buttons[7] && gp.buttons[7].pressed) keys.forward = true;
       else if (gp.buttons[7] && !gp.buttons[7].pressed && !keys.keyboardForward) keys.forward = false;
@@ -154,6 +170,16 @@ export function updateGamepad() {
       // Left shoulder (L1) or face button B for drift
       if ((gp.buttons[4] && gp.buttons[4].pressed) || (gp.buttons[1] && gp.buttons[1].pressed)) keys.drift = true;
       else if (!keys.keyboardDrift) keys.drift = false;
+
+      // Start button for pause
+      if (gp.buttons[9] && gp.buttons[9].pressed) {
+        if (!keys.pause) {
+          keys.pauseTriggered = true;
+          keys.pause = true;
+        }
+      } else {
+        keys.pause = false;
+      }
 
       // Analog stick steering (X axis)
       const xAxis = gp.axes[0];

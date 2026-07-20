@@ -77,6 +77,12 @@ export function updateCamera(camera, kartState, dt, keys) {
     camera.position.y += (Math.random() - 0.5) * shakeAmt;
   }
   
+  if (kartState.spinOutTimer > 0) {
+    const shakeAmt = 0.5; // Heavy shake
+    camera.position.x += (Math.random() - 0.5) * shakeAmt;
+    camera.position.y += (Math.random() - 0.5) * shakeAmt;
+  }
+  
   // Smooth FOV transitions to avoid snapping
   if (!camera.userData.currentFov) camera.userData.currentFov = baseFov;
   camera.userData.currentFov = THREE.MathUtils.lerp(camera.userData.currentFov, baseFov, 5.0 * dt);

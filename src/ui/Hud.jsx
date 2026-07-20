@@ -28,13 +28,27 @@ export default function Hud({ onExitMenu }) {
         
         <div className="hud-panel hud-position">
           <span className="hud-label">POSICIÓN</span>
-          <span id="hud-position-value" className="hud-value font-mono" style={{ fontSize: '2.5rem', color: '#ffea00' }}>1/4</span>
+          <div>
+            <span style={{ fontSize: '1.8rem', marginRight: '5px' }}>🏆</span>
+            <span id="hud-position-value" className="hud-value font-mono" style={{ fontSize: '2.5rem', color: '#ffea00' }}>1/4</span>
+          </div>
         </div>
       </div>
 
       {/* Center Screen: Countdown */}
-      <div className="hud-center" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
+      <div className="hud-center" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10 }}>
         <div id="hud-countdown" className="hud-countdown-text text-neon-glow" style={{ fontSize: '10rem', fontWeight: 'bold', color: '#ffea00', textShadow: '4px 4px 0px #000' }}></div>
+      </div>
+      
+      {/* Pause Overlay */}
+      <div id="hud-pause-overlay" style={{
+        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', backdropFilter: 'blur(4px)',
+        display: 'none', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+        zIndex: 100
+      }}>
+        <h1 className="text-neon-glow" style={{ fontSize: '5rem', margin: 0 }}>PAUSA</h1>
+        <p style={{ color: '#fff', marginTop: '10px' }}>Presiona ESC o START para continuar</p>
       </div>
 
 
