@@ -257,12 +257,12 @@ export const levels = {
     rivalSpeed: 95,
     startPosition: { x: 0, y: 0, z: 150 },
     startRotation: Math.PI / 2,
-    ambientColor: 0x3b82f6,
-    skyColor: 0x4a5568, // Dark gray sky for rain
-    groundColor: 0x064e3b, // Darker grass
-    trackColor: 0x1e293b,
-    wallColor: 0x06b6d4,
-    weather: 'rain'
+    ambientColor: 0x99aaff,
+    skyColor: 0x0ea5e9,        // Bright clear sunny sky
+    groundColor: 0x10b981,     // Vibrant emerald grass
+    trackColor: 0x334155,      // Clean dark asphalt
+    wallColor: 0xfacc15,       // Bright sunny yellow
+    weather: 'clear'
   }
 };
 
