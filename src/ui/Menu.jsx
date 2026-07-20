@@ -1,7 +1,7 @@
 // src/ui/Menu.jsx
 import React from 'react';
 
-export default function Menu({ onSelectLevel }) {
+export default function Menu({ onSelectLevel, musicEnabled, onToggleMusic }) {
   return (
     <div className="menu-overlay">
       <div className="menu-container">
@@ -19,6 +19,14 @@ export default function Menu({ onSelectLevel }) {
               style={{ padding: '20px', fontSize: '1.5rem', width: '100%', marginTop: '20px' }}
             >
               EMPEZAR CARRERA
+            </button>
+            
+            <button 
+              className="play-button"
+              onClick={onToggleMusic}
+              style={{ padding: '10px', fontSize: '1rem', width: '100%', marginTop: '10px', backgroundColor: musicEnabled ? '#222' : '#550000', border: '1px solid ' + (musicEnabled ? '#00ff88' : '#ff0000'), color: musicEnabled ? '#00ff88' : '#ff0000' }}
+            >
+              {musicEnabled ? '🎵 MÚSICA: SÍ' : '🔇 MÚSICA: NO'}
             </button>
           </div>
         </div>

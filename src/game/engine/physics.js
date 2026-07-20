@@ -157,7 +157,7 @@ function resolveWallCollisions(state, levelData) {
       if (vNormal < 0) {
         v.addScaledVector(normal, -vNormal);
         state.vel.set(v.x, state.vel.y, v.y);
-        state.speed = Math.max(state.speed * 0.4, -4.0); // bounce penalty
+        state.speed = Math.max(state.speed * 0.7, -4.0); // improved bounce penalty
       }
     }
   }
@@ -234,15 +234,15 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   const trackInfo = checkOnTrack(state.pos, levelData);
   state.offTrack = !trackInfo.onTrack;
 
-  let maxSpeed = 30.0;
-  let accelRate = 18.0;
+  let maxSpeed = 45.0;
+  let accelRate = 25.0;
   
   if (state.boostTimer > 0) {
-    maxSpeed = 50.0;
-    accelRate = 45.0;
+    maxSpeed = 65.0;
+    accelRate = 50.0;
   } else if (state.offTrack) {
-    maxSpeed = 10.0;
-    accelRate = 8.0;
+    maxSpeed = 15.0;
+    accelRate = 12.0;
   }
 
   // 3. User acceleration
@@ -280,13 +280,13 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   }
 
   // 5. Steering calculations
-  let steerSpeed = 2.6; // radians/second
+  let steerSpeed = 2.8; // radians/second
   if (state.isDrifting) {
-    steerSpeed = 3.6; // Drift turns tighter
+    steerSpeed = 4.2; // Drift turns tighter
   }
 
   // Scale steering with speed
-  const speedRatio = Math.min(Math.abs(state.speed) / 10.0, 1.0);
+  const speedRatio = Math.min(Math.abs(state.speed) / 15.0, 1.0);
   const steerFactor = steerSpeed * speedRatio * Math.sign(state.speed);
   
   // Update angle
@@ -326,7 +326,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   const facingDir = new THREE.Vector3(headingX, 0, headingZ);
 
   // Drift slip
-  const lerpFactor = state.isDrifting ? 1.8 : 8.0;
+  const lerpFactor = state.isDrifting ? 1.5 : 9.0;
   const targetVel = facingDir.clone().multiplyScalar(state.speed);
   state.vel.lerp(targetVel, lerpFactor * dt);
 

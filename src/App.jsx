@@ -11,9 +11,11 @@ function App() {
   const [levelId, setLevelId] = useState(1);
   const [finalTime, setFinalTime] = useState(0);
 
+  const [musicEnabled, setMusicEnabled] = useState(true);
+
   // Play metal music when in the game screen
   useEffect(() => {
-    if (screen === 'game') {
+    if (screen === 'game' && musicEnabled) {
       metalMusic.play();
     } else {
       metalMusic.stop();
@@ -21,7 +23,7 @@ function App() {
     return () => {
       metalMusic.stop();
     };
-  }, [screen]);
+  }, [screen, musicEnabled]);
 
   // We can track lap changes for any React-side analytics if needed,
   // but the live HUD is updated directly in the DOM.
@@ -38,6 +40,8 @@ function App() {
     <div className="app-viewport">
       {screen === 'menu' && (
         <Menu 
+          musicEnabled={musicEnabled}
+          onToggleMusic={() => setMusicEnabled(!musicEnabled)}
           onSelectLevel={(id) => {
             setLevelId(id);
             setScreen('game');

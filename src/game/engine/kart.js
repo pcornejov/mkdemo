@@ -13,32 +13,30 @@ export function createKartMesh(colorHex = 0xff0000) {
   const engineMat = new THREE.MeshStandardMaterial({ color: 0x666666, roughness: 0.6, metalness: 0.5 });
   const exhaustGlowMat = new THREE.MeshBasicMaterial({ color: 0xffaa00 });
 
-  // 1. Pipe Frame Chassis (Simple boxes to look like pipes)
-  // Left and Right main rails
-  const railGeom = new THREE.BoxGeometry(0.1, 0.1, 1.8);
-  const leftRail = new THREE.Mesh(railGeom, pipeMat);
-  leftRail.position.set(-0.4, 0.2, 0);
-  group.add(leftRail);
-
-  const rightRail = new THREE.Mesh(railGeom, pipeMat);
-  rightRail.position.set(0.4, 0.2, 0);
-  group.add(rightRail);
-
-  // Front and Back cross rails
-  const crossGeom = new THREE.BoxGeometry(0.9, 0.1, 0.1);
-  const frontRail = new THREE.Mesh(crossGeom, pipeMat);
-  frontRail.position.set(0, 0.2, 0.85);
-  group.add(frontRail);
-
-  const backRail = new THREE.Mesh(crossGeom, pipeMat);
-  backRail.position.set(0, 0.2, -0.85);
-  group.add(backRail);
-
-  // Front bumper curve (simple box)
-  const bumperGeom = new THREE.BoxGeometry(0.5, 0.1, 0.1);
-  const bumper = new THREE.Mesh(bumperGeom, bodyMat);
-  bumper.position.set(0, 0.2, 0.95);
-  group.add(bumper);
+  // 1. Sleeker aerodynamic body
+  // Main chassis body
+  const bodyGeom = new THREE.BoxGeometry(0.8, 0.25, 1.9);
+  const mainBody = new THREE.Mesh(bodyGeom, bodyMat);
+  mainBody.position.set(0, 0.3, 0);
+  group.add(mainBody);
+  
+  // Nose cone
+  const noseGeom = new THREE.CylinderGeometry(0, 0.4, 0.5, 4);
+  noseGeom.rotateY(Math.PI / 4);
+  noseGeom.rotateX(Math.PI / 2);
+  const nose = new THREE.Mesh(noseGeom, bodyMat);
+  nose.position.set(0, 0.3, 1.2);
+  group.add(nose);
+  
+  // Side pods
+  const podGeom = new THREE.BoxGeometry(0.3, 0.2, 1.0);
+  const leftPod = new THREE.Mesh(podGeom, bodyMat);
+  leftPod.position.set(-0.55, 0.25, 0);
+  group.add(leftPod);
+  
+  const rightPod = new THREE.Mesh(podGeom, bodyMat);
+  rightPod.position.set(0.55, 0.25, 0);
+  group.add(rightPod);
 
   // 2. Wheels (Small and simple)
   const wheelGeom = new THREE.CylinderGeometry(0.25, 0.25, 0.2, 8);
@@ -132,6 +130,33 @@ export function createKartMesh(colorHex = 0xff0000) {
   const driverHead = new THREE.Mesh(driverHeadGeom, skinMat);
   driverHead.position.set(0, 0.95, -0.2);
   group.add(driverHead);
+  
+  // Visor / Helmet
+  const helmetGeom = new THREE.BoxGeometry(0.32, 0.32, 0.32);
+  const helmet = new THREE.Mesh(helmetGeom, pipeMat);
+  helmet.position.set(0, 0.95, -0.2);
+  group.add(helmet);
+  
+  const visorGeom = new THREE.BoxGeometry(0.25, 0.1, 0.05);
+  const visor = new THREE.Mesh(visorGeom, darkMat);
+  visor.position.set(0, 1.0, -0.03);
+  group.add(visor);
+  
+  // 6. Rear Spoiler
+  const spoilerPillarGeom = new THREE.BoxGeometry(0.05, 0.3, 0.1);
+  const leftPillar = new THREE.Mesh(spoilerPillarGeom, darkMat);
+  leftPillar.position.set(-0.3, 0.5, -0.8);
+  group.add(leftPillar);
+  
+  const rightPillar = new THREE.Mesh(spoilerPillarGeom, darkMat);
+  rightPillar.position.set(0.3, 0.5, -0.8);
+  group.add(rightPillar);
+  
+  const spoilerWingGeom = new THREE.BoxGeometry(1.1, 0.05, 0.3);
+  const spoilerWing = new THREE.Mesh(spoilerWingGeom, bodyMat);
+  spoilerWing.position.set(0, 0.65, -0.8);
+  spoilerWing.rotation.x = -Math.PI / 12; // tilt slightly
+  group.add(spoilerWing);
 
   // Enable shadows for all kart parts
   group.traverse((child) => {
