@@ -701,12 +701,32 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         kartMesh.position.copy(kartState.pos);
         kartMesh.rotation.y = kartState.angle;
         
-        // Lean kart slightly when steering
+        // Enhanced Kart suspension tilt/roll mechanics
+        const rollTarget = -steerDir * (kartState.isDrifting ? 0.35 : 0.18) * Math.min(Math.abs(kartState.speed)/80, 1.0);
         kartMesh.rotation.z = THREE.MathUtils.lerp(
           kartMesh.rotation.z,
-          -steerDir * (kartState.isDrifting ? 0.15 : 0.08),
+          rollTarget,
           10.0 * dt
         );
+        
+        // Pitch (Acceleration/Braking tilt)
+        let kartPitchTarget = 0;
+        if (keys.forward) kartPitchTarget = -0.08;
+        if (keys.backward) kartPitchTarget = 0.08;
+
+        kartMesh.rotation.x = THREE.MathUtils.lerp(
+          kartMesh.rotation.x,
+          kartPitchTarget,
+          8.0 * dt
+        );
+
+        // Suspension bounce based on speed
+        if (kartState.isGrounded && !kartState.offTrack && kartState.speed > 20) {
+           const bounceFreq = kartState.speed * 0.3;
+           const bounceAmp = 0.02 + (kartState.speed / 150) * 0.03;
+           const bounce = Math.abs(Math.sin(elapsedTime * bounceFreq)) * bounceAmp;
+           kartMesh.position.y += bounce; 
+        }
         
         // Spin-out squash and stretch
         if (kartState.spinOutTimer > 0) {
@@ -869,16 +889,26 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         // H3. Dynamic Oil Slicks (from items)
         if (levelData.oilSlicks && levelData.oilSlicks.length > obstacleMeshes.filter(m => m.isSlick).length) {
           // Re-render new oil slicks (quick hack for demo, ideally we spawn them dynamically)
+          const currentCount = obstacleMeshes.filter(m => m.isSlick).length;
           levelData.oilSlicks.forEach((slick, i) => {
-            if (i >= obstacleMeshes.filter(m => m.isSlick).length) {
-              const slickGeom = new THREE.CircleGeometry(slick.radius, 16);
-              const slickMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, transparent: true, opacity: 0.85 });
-              const slickMesh = new THREE.Mesh(slickGeom, slickMat);
-              slickMesh.rotation.x = -Math.PI / 2;
-              slickMesh.position.set(slick.x, slick.y || 0.05, slick.z);
-              slickMesh.isSlick = true;
-              scene.add(slickMesh);
-              obstacleMeshes.push(slickMesh);
+            if (i >= currentCount) {
+              let mesh;
+              if (slick.isBanana) {
+                const bananaGeom = new THREE.BoxGeometry(2.0, 1.5, 2.0);
+                const bananaMat = new THREE.MeshStandardMaterial({ color: 0xffea00 });
+                mesh = new THREE.Mesh(bananaGeom, bananaMat);
+                mesh.position.set(slick.x, slick.y || 0.75, slick.z);
+                mesh.rotation.y = Math.random() * Math.PI;
+              } else {
+                const slickGeom = new THREE.CircleGeometry(slick.radius, 16);
+                const slickMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, transparent: true, opacity: 0.85 });
+                mesh = new THREE.Mesh(slickGeom, slickMat);
+                mesh.rotation.x = -Math.PI / 2;
+                mesh.position.set(slick.x, slick.y || 0.05, slick.z);
+              }
+              mesh.isSlick = true;
+              scene.add(mesh);
+              obstacleMeshes.push(mesh);
             }
           });
         }
@@ -1030,9 +1060,26 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         const itemEl = document.getElementById('hud-item-value');
         if (itemEl) {
-          if (kartState.currentItem === 'mushroom') itemEl.textContent = '🍄 Nitro';
-          else if (kartState.currentItem === 'oil_slick') itemEl.textContent = '🛢️ Aceite';
-          else itemEl.textContent = 'Vacío';
+          if (kartState.rouletteTimer > 0) {
+            const emojis = ['🍄', '🍌', '🐢', '🌟', '💧'];
+            itemEl.textContent = emojis[Math.floor(elapsedTime * 15) % emojis.length];
+            itemEl.style.color = '#ffea00';
+          } else if (kartState.currentItem === 'mushroom') {
+            itemEl.textContent = '🍄 Nitro';
+            itemEl.style.color = '#00ff88';
+          } else if (kartState.currentItem === 'oil_slick') {
+            itemEl.textContent = '💧 Aceite';
+            itemEl.style.color = '#00ff88';
+          } else if (kartState.currentItem === 'banana') {
+            itemEl.textContent = '🍌 Plátano';
+            itemEl.style.color = '#00ff88';
+          } else if (kartState.currentItem === 'shell') {
+            itemEl.textContent = '🐢 Caparazón';
+            itemEl.style.color = '#00ff88';
+          } else {
+            itemEl.textContent = 'Vacío';
+            itemEl.style.color = '#00f3ff';
+          }
         }
         
         const minimapPlayerEl = document.getElementById('minimap-player');
