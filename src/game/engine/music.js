@@ -13,37 +13,66 @@ class MetalMusicEngine {
     this.masterVolume = null;
     this.distortionCurve = this.makeDistortionCurve(80);
 
-    // D-Minor Heavy Metal Riff notes (frequencies in Hz)
+    // Musical Note Frequencies (Hz)
+    const C2 = 65.41;
     const D2 = 73.42;
-    const D3 = 146.83;
+    const E2 = 82.41;
     const F2 = 87.31;
     const G2 = 98.00;
     const Ab2 = 103.83;
-    const C2 = 65.41;
+    const A2 = 110.00;
+    const Bb2 = 116.54;
+    const C3 = 130.81;
+    const D3 = 146.83;
+    const E3 = 164.81;
 
-    // 16-step metal riff
-    this.guitarRiff = [
-      D2, D2, F2, D2, G2, D2, Ab2, G2,
-      D2, D2, F2, D2, C2, D2, D3, D2
+    // 5 Different Tracks
+    this.tracks = [
+      {
+        // Track 1: D-Minor Heavy Chugging
+        tempo: 150,
+        guitar: [D2, D2, F2, D2, G2, D2, Ab2, G2, D2, D2, F2, D2, C2, D2, D3, D2],
+        kick:   [true, false, true, false, true, false, true, false, true, false, true, false, true, true, false, false],
+        snare:  [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false],
+        hat:    [false, true, false, true, false, true, false, true, false, true, false, true, false, true, true, true]
+      },
+      {
+        // Track 2: E-Minor Thrash
+        tempo: 180,
+        guitar: [E2, 0, E2, E2, G2, E2, A2, G2, E2, E2, E3, 0, D3, 0, C3, 0],
+        kick:   [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+        snare:  [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false],
+        hat:    [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false]
+      },
+      {
+        // Track 3: A-Minor Breakdown
+        tempo: 110,
+        guitar: [A2, 0, 0, A2, A2, 0, A2, 0, C3, 0, A2, A2, 0, G2, 0, E2],
+        kick:   [true, false, false, true, true, false, true, false, false, false, true, true, false, false, false, false],
+        snare:  [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false],
+        hat:    [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]
+      },
+      {
+        // Track 4: C-Minor Melodic Death
+        tempo: 160,
+        guitar: [C2, D2, Eb2, C2, G2, F2, Eb2, D2, C2, D2, Eb2, C2, Ab2, G2, F2, Eb2],
+        kick:   [true, false, true, false, false, true, false, true, true, false, true, false, false, true, false, true],
+        snare:  [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false],
+        hat:    [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true]
+      },
+      {
+        // Track 5: Bb-Minor Groovy Doom
+        tempo: 130,
+        guitar: [Bb2, Bb2, Db2, 0, Bb2, 0, Eb2, 0, Bb2, Bb2, F2, 0, Eb2, 0, Db2, C2],
+        kick:   [true, false, false, false, true, false, false, true, true, false, false, false, true, false, false, true],
+        snare:  [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false],
+        hat:    [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false]
+      }
     ];
 
-    // Heavy Double-Bass drum pattern
-    this.kickPattern = [
-      true, false, true, false, true, false, true, false,
-      true, false, true, false, true, true, false, false
-    ];
-
-    // Snare hits on 4 and 12
-    this.snarePattern = [
-      false, false, false, false, true, false, false, false,
-      false, false, false, false, true, false, false, false
-    ];
-
-    // Hi-hats on off-beats
-    this.hatPattern = [
-      false, true, false, true, false, true, false, true,
-      false, true, false, true, false, true, true, true
-    ];
+    this.currentTrackIndex = 0;
+    this.loopCount = 0;
+    this.loopsPerTrack = 8; // Change track every 8 loops (bars)
   }
 
   makeDistortionCurve(amount) {
@@ -100,16 +129,28 @@ class MetalMusicEngine {
   }
 
   advanceStep() {
-    const secondsPerBeat = 60.0 / this.tempo;
+    const track = this.tracks[this.currentTrackIndex];
+    const secondsPerBeat = 60.0 / track.tempo;
     const stepDuration = secondsPerBeat / 4; // 16th notes
     this.nextNoteTime += stepDuration;
-    this.currentStep = (this.currentStep + 1) % 16;
+    
+    this.currentStep++;
+    if (this.currentStep >= 16) {
+      this.currentStep = 0;
+      this.loopCount++;
+      if (this.loopCount >= this.loopsPerTrack) {
+        this.loopCount = 0;
+        this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length;
+      }
+    }
   }
 
   // Synthesize instruments on the fly
   scheduleStep(step, time) {
+    const track = this.tracks[this.currentTrackIndex];
+    
     // 1. Guitar / Bass Synth (Distorted Sawtooth)
-    const noteFreq = this.guitarRiff[step];
+    const noteFreq = track.guitar[step];
     if (noteFreq) {
       const osc = this.ctx.createOscillator();
       const gainNode = this.ctx.createGain();
@@ -143,7 +184,7 @@ class MetalMusicEngine {
     }
 
     // 2. Heavy Kick Drum (Double-Bass chug)
-    if (this.kickPattern[step]) {
+    if (track.kick[step]) {
       const osc = this.ctx.createOscillator();
       const gainNode = this.ctx.createGain();
 
@@ -161,7 +202,7 @@ class MetalMusicEngine {
     }
 
     // 3. Noise Snare Drum
-    if (this.snarePattern[step]) {
+    if (track.snare[step]) {
       // Create noise buffer
       const bufferSize = this.ctx.sampleRate * 0.18; // 180ms
       const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -201,7 +242,7 @@ class MetalMusicEngine {
     }
 
     // 4. Noise Hi-Hat (Metallic crash)
-    if (this.hatPattern[step]) {
+    if (track.hat[step]) {
       const bufferSize = this.ctx.sampleRate * 0.04; // 40ms
       const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
       const data = buffer.getChannelData(0);
