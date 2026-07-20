@@ -816,7 +816,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         const speedEl = document.getElementById('hud-speed-value');
         if (speedEl) {
-          speedEl.textContent = Math.floor(Math.abs(kartState.speed));
+          speedEl.textContent = Math.floor(Math.abs(kartState.speed) * 2);
         }
         
         const boostBarEl = document.getElementById('hud-boost-bar');

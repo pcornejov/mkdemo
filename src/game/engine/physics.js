@@ -268,15 +268,15 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   const trackInfo = checkOnTrack(state.pos, levelData);
   state.offTrack = !trackInfo.onTrack;
 
-  let maxSpeed = 200.0;
-  let accelRate = 120.0;
+  let maxSpeed = 100.0;
+  let accelRate = 50.0;
   
   if (state.boostTimer > 0) {
-    maxSpeed = 280.0;
-    accelRate = 180.0;
+    maxSpeed = 145.0;
+    accelRate = 90.0;
   } else if (state.offTrack) {
-    maxSpeed = 60.0;
-    accelRate = 40.0;
+    maxSpeed = 30.0;
+    accelRate = 20.0;
   }
 
   // Weather modifiers
@@ -321,12 +321,12 @@ export function updatePhysics(state, keysInput, levelData, dt) {
       // Trigger mini-boost on release if drift was held long enough
       if (state.driftCharge > 0.8) {
         playSound('boost');
-        state.speed += 60.0;
-        state.boostTimer = 0.5;
+        state.speed = Math.max(state.speed, 120.0); // Boost up to 120, clamped by maxSpeed 145
+        state.boostTimer = 0.8;
       } else if (state.driftCharge > 0.4) {
         playSound('boost');
-        state.speed += 30.0;
-        state.boostTimer = 0.2;
+        state.speed = Math.max(state.speed, 100.0);
+        state.boostTimer = 0.3;
       }
       state.isDrifting = false;
       state.driftDir = 0;
@@ -389,7 +389,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
 
   // Smooth brake response
   if (keysInput.backward && state.speed > 0) {
-    state.speed -= 160.0 * dt; // brake deceleration
+    state.speed -= 80.0 * dt; // brake deceleration
   }
 
   // Clamp speed to terrain max
