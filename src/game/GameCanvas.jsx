@@ -761,12 +761,16 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
               // Compute final leaderboard
               const allRacersEnd = [
                 { id: 'Tú (Jugador)', lap: currentLap, cp: nextCheckpointIndex, dist: 0 },
-                ...rivals.map((r, i) => ({ 
-                  id: `Rival ${i+1}`, 
-                  lap: r.lap, 
-                  cp: r.nextCheckpointIndex, 
-                  dist: r.pos.distanceTo(levelData.checkpoints[r.nextCheckpointIndex]) 
-                }))
+                ...rivals.map((r, i) => {
+                  const cpTarget = levelData.checkpoints[r.targetWaypointIndex] || levelData.checkpoints[0];
+                  const dist = Math.sqrt(Math.pow(r.pos.x - cpTarget.x, 2) + Math.pow(r.pos.z - cpTarget.z, 2));
+                  return {
+                    id: `Rival ${i+1}`, 
+                    lap: r.lap, 
+                    cp: r.targetWaypointIndex, 
+                    dist: dist
+                  };
+                })
               ];
               allRacersEnd.sort((a, b) => {
                 if (a.lap !== b.lap) return b.lap - a.lap;
@@ -1038,12 +1042,16 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         const allRacers = [
           { id: 'player', lap: currentLap, cp: nextCheckpointIndex, dist: currentDistToCP },
-          ...rivals.map((r, i) => ({ 
-            id: `rival${i}`, 
-            lap: r.lap, 
-            cp: r.nextCheckpointIndex, 
-            dist: r.pos.distanceTo(levelData.checkpoints[r.nextCheckpointIndex]) 
-          }))
+          ...rivals.map((r, i) => {
+            const cpTarget = levelData.checkpoints[r.targetWaypointIndex] || levelData.checkpoints[0];
+            const dist = Math.sqrt(Math.pow(r.pos.x - cpTarget.x, 2) + Math.pow(r.pos.z - cpTarget.z, 2));
+            return { 
+              id: `rival${i}`, 
+              lap: r.lap, 
+              cp: r.targetWaypointIndex, 
+              dist: dist
+            };
+          })
         ];
         
         allRacers.sort((a, b) => {
