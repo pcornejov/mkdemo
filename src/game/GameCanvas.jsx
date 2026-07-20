@@ -979,7 +979,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
                 projectileMeshes.set(p, mesh);
               }
               const bounceY = Math.abs(Math.sin(elapsedTime * 10)) * 2.0;
-              mesh.position.set(p.x, getTrackHeight(p, levelData) + 1.2 + bounceY, p.z);
+              mesh.position.set(p.x, getTrackHeight(new THREE.Vector3(p.x, 0, p.z), levelData) + 1.2 + bounceY, p.z);
               mesh.rotation.y += 10.0 * dt;
             }
           }
