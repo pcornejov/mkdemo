@@ -81,12 +81,25 @@ class MetalMusicEngine {
         snare:  [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false],
         hat:    [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
         crash:  [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+      },
+      {
+        // Track 6: F-Minor Synthwave Pulse
+        tempo: 125,
+        guitar: ['F2', 'F2', 'F2', 'F2', 'Ab2', 'Ab2', 'Eb2', 'Eb2', 'F2', 'F2', 'F2', 'F2', 'Db2', 'Db2', 'Eb2', 'Eb2'],
+        bass:   ['F1', 'F1', 'F1', 'F1', 'Ab1', 'Ab1', 'Eb1', 'Eb1', 'F1', 'F1', 'F1', 'F1', 'Db1', 'Db1', 'Eb1', 'Eb1'],
+        lead:   ['F5', _, 'C6', _, 'Ab5', _, 'Eb5', _, 'F5', _, 'C6', _, 'Db6', _, 'Eb6', _],
+        kick:   [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false],
+        snare:  [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false],
+        hat:    [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+        crash:  [true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
       }
     ];
 
     this.currentTrackIndex = 0;
     this.loopCount = 0;
     this.loopsPerTrack = 8; // Change track every 8 loops (bars)
+    this.songTrackStart = 0;
+    this.songTrackEnd = 4;
   }
 
   makeDistortionCurve(amount) {
@@ -120,12 +133,23 @@ class MetalMusicEngine {
     this.compressor.connect(this.ctx.destination);
   }
 
-  play() {
+  play(levelId = 1) {
     this.initAudio();
     if (this.isPlaying) return;
 
     if (this.ctx.state === 'suspended') {
       this.ctx.resume();
+    }
+
+    // Level 2 (and 3) get the synthwave track, Level 1 gets metal
+    if (levelId >= 2) {
+      this.songTrackStart = 5;
+      this.songTrackEnd = 5;
+      this.currentTrackIndex = 5;
+    } else {
+      this.songTrackStart = 0;
+      this.songTrackEnd = 4;
+      this.currentTrackIndex = 0;
     }
 
     this.isPlaying = true;
@@ -164,7 +188,10 @@ class MetalMusicEngine {
       this.loopCount++;
       if (this.loopCount >= this.loopsPerTrack) {
         this.loopCount = 0;
-        this.currentTrackIndex = (this.currentTrackIndex + 1) % this.tracks.length;
+        this.currentTrackIndex++;
+        if (this.currentTrackIndex > this.songTrackEnd) {
+          this.currentTrackIndex = this.songTrackStart;
+        }
       }
     }
   }

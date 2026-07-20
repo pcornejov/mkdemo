@@ -17,14 +17,14 @@ function App() {
   // Play metal music when in the game screen
   useEffect(() => {
     if (screen === 'game' && musicEnabled) {
-      metalMusic.play();
+      metalMusic.play(levelId);
     } else {
       metalMusic.stop();
     }
     return () => {
       metalMusic.stop();
     };
-  }, [screen, musicEnabled]);
+  }, [screen, musicEnabled, levelId]);
 
   // We can track lap changes for any React-side analytics if needed,
   // but the live HUD is updated directly in the DOM.

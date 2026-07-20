@@ -1,7 +1,7 @@
 // src/game/engine/ai.js
 import * as THREE from 'three';
 import { createKartMesh, updateKartVisuals } from './kart.js';
-import { getTrackHeight } from './physics.js';
+import { getTrackHeight, resolveWallCollisions } from './physics.js';
 
 const RIVAL_COLORS = [0xff6600, 0x9900ff, 0xff0055];
 
@@ -56,8 +56,22 @@ export function updateRivals(rivals, playerState, levelData, dt) {
     const dist = Math.sqrt(dx * dx + dz * dz);
 
     // If close to waypoint, target the next one
-    if (dist < 15.0) {
+    if (dist < 30.0) {
       rival.currentWaypointIdx = (rival.currentWaypointIdx + 1) % n;
+    }
+    
+    // Fallback if AI gets knocked way off track: find closest waypoint
+    if (dist > 80.0) {
+      let minWpDist = Infinity;
+      let closestWp = rival.currentWaypointIdx;
+      for (let i = 0; i < n; i++) {
+        const d = Math.sqrt(Math.pow(path[i].x - rival.pos.x, 2) + Math.pow(path[i].z - rival.pos.z, 2));
+        if (d < minWpDist) {
+          minWpDist = d;
+          closestWp = i;
+        }
+      }
+      rival.currentWaypointIdx = closestWp;
     }
 
     // --- Obstacle Avoidance ---
@@ -124,6 +138,13 @@ export function updateRivals(rivals, playerState, levelData, dt) {
     // Update position XZ
     rival.pos.x += Math.sin(rival.angle) * rival.speed * dt;
     rival.pos.z += Math.cos(rival.angle) * rival.speed * dt;
+
+    // Sync velocity for physics collisions
+    rival.vel.x = Math.sin(rival.angle) * rival.speed;
+    rival.vel.z = Math.cos(rival.angle) * rival.speed;
+
+    // Apply wall collisions for AI to prevent clipping
+    resolveWallCollisions(rival, levelData, dt);
 
     // Ground snap
     const trackY = getTrackHeight(rival.pos, levelData);

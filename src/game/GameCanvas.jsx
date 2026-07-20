@@ -577,7 +577,6 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     // 12. Imperative Loop
     let lastTime = performance.now();
     let isPaused = false;
-    let animationFrameId;
 
     function loop(time) {
       const dt = Math.min((time - lastTime) / 1000, 0.1); // limit dt to 100ms
@@ -774,9 +773,10 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         // Wheels positions for drift sparks & smoke
         if (kartState.isDrifting && Math.abs(kartState.speed) > 10.0 && !kartState.offTrack) {
-          // Blue/yellow drift sparks depending on drift charge
-          const sparkColor = kartState.driftCharge > 0.8 ? 0xffea00 : 0x00f3ff;
-          spawnParticles(kartState.pos, sparkColor, 2, 0.5);
+          // Evolving drift sparks depending on drift charge
+          const isMaxDrift = kartState.driftCharge > 0.8;
+          const sparkColor = isMaxDrift ? 0xffea00 : (kartState.driftCharge > 0.4 ? 0xff5500 : 0x00f3ff);
+          spawnParticles(kartState.pos, sparkColor, isMaxDrift ? 4 : 2, isMaxDrift ? 0.8 : 0.5);
           
           // Smoke when drifting
           if (Math.random() > 0.4) {
@@ -1003,11 +1003,11 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         }
         
         // Compute Race Position
-        const cpTarget = levelData.checkpoints[nextCheckpointIndex];
-        const distToCP = Math.sqrt(Math.pow(kartState.pos.x - cpTarget.x, 2) + Math.pow(kartState.pos.z - cpTarget.z, 2));
+        const currentCpTarget = levelData.checkpoints[nextCheckpointIndex];
+        const currentDistToCP = Math.sqrt(Math.pow(kartState.pos.x - currentCpTarget.x, 2) + Math.pow(kartState.pos.z - currentCpTarget.z, 2));
         
         const allRacers = [
-          { id: 'player', lap: currentLap, cp: nextCheckpointIndex, dist: distToCP },
+          { id: 'player', lap: currentLap, cp: nextCheckpointIndex, dist: currentDistToCP },
           ...rivals.map((r, i) => ({ 
             id: `rival${i}`, 
             lap: r.lap, 

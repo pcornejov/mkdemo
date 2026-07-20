@@ -44,6 +44,28 @@ export function playSound(type) {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
     osc.start(now);
     osc.stop(now + 0.25);
+  } else if (type === 'drift') {
+    osc.disconnect(gain);
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1200;
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(300, now);
+    osc.frequency.linearRampToValueAtTime(600, now + 0.15);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.gain.setValueAtTime(0.4, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  } else if (type === 'roulette') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1000, now);
+    osc.frequency.exponentialRampToValueAtTime(1500, now + 0.05);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+    osc.start(now);
+    osc.stop(now + 0.05);
   }
 }
 

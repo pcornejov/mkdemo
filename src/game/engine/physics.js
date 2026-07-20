@@ -20,7 +20,9 @@ export function initKartState(levelData) {
     boostTimer: 0,
     boostCooldown: 0,
     spinOutTimer: 0,
-    offTrack: false
+    offTrack: false,
+    rouletteTimer: 0,
+    currentItem: null
   };
 }
 
@@ -115,7 +117,7 @@ export function getTrackHeight(pos, levelData) {
   return height;
 }
 
-function resolveWallCollisions(state, levelData) {
+export function resolveWallCollisions(state, levelData, dt = 0.016) {
   const R = state.radius;
   const K = new THREE.Vector2(state.pos.x, state.pos.z);
   const v = new THREE.Vector2(state.vel.x, state.vel.z);
@@ -159,7 +161,22 @@ function resolveWallCollisions(state, levelData) {
       if (vNormal < 0) {
         v.addScaledVector(normal, -vNormal);
         state.vel.set(v.x, state.vel.y, v.y);
-        state.speed = Math.max(state.speed * 0.9, -2.0); // softer bounce penalty
+        
+        // Improve wall sliding: heavily reduce speed if driving directly into the wall
+        const facing = new THREE.Vector2(Math.sin(state.angle), Math.cos(state.angle));
+        const facingDotNormal = facing.dot(normal);
+        
+        if (facingDotNormal < -0.2) {
+          state.speed *= (1.0 - Math.abs(facingDotNormal) * 0.8);
+          // Gently push the kart's rotation to slide along the wall
+          const wallDir = new THREE.Vector2(-normal.y, normal.x);
+          const pushAngle = 2.0 * dt;
+          if (facing.dot(wallDir) > 0) {
+            state.angle -= pushAngle;
+          } else {
+            state.angle += pushAngle;
+          }
+        }
       }
     }
   }
@@ -227,6 +244,14 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   }
   if (state.boostCooldown > 0) {
     state.boostCooldown -= dt;
+  }
+  if (state.rouletteTimer > 0) {
+    state.rouletteTimer -= dt;
+    if (state.rouletteTimer <= 0) {
+      const items = ['mushroom', 'banana', 'shell', 'mushroom'];
+      state.currentItem = items[Math.floor(Math.random() * items.length)];
+      playSound('hop'); // Item landed
+    }
   }
 
   // Spin-out logic
@@ -327,12 +352,12 @@ export function updatePhysics(state, keysInput, levelData, dt) {
       // Trigger mini-boost on release if drift was held long enough
       if (state.driftCharge > 0.8) {
         playSound('boost');
-        state.speed = Math.max(state.speed, 120.0); // Boost up to 120, clamped by maxSpeed 145
-        state.boostTimer = 0.8;
+        state.speed = Math.max(state.speed, 135.0); // More satisfying drift boost!
+        state.boostTimer = 1.0;
       } else if (state.driftCharge > 0.4) {
         playSound('boost');
-        state.speed = Math.max(state.speed, 100.0);
-        state.boostTimer = 0.3;
+        state.speed = Math.max(state.speed, 115.0);
+        state.boostTimer = 0.5;
       }
       state.isDrifting = false;
       state.driftDir = 0;
@@ -347,13 +372,16 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   if (keysInput.item && state.currentItem) {
     if (state.currentItem === 'mushroom') {
       state.boostTimer = 2.0;
-    } else if (state.currentItem === 'oil_slick') {
+      playSound('boost');
+    } else if (state.currentItem === 'oil_slick' || state.currentItem === 'banana') {
       if (!levelData.oilSlicks) levelData.oilSlicks = [];
       levelData.oilSlicks.push({
         x: state.pos.x - Math.sin(state.angle) * 5.0,
         z: state.pos.z - Math.cos(state.angle) * 5.0,
-        radius: 3.5
+        radius: state.currentItem === 'banana' ? 2.5 : 3.5,
+        isBanana: state.currentItem === 'banana'
       });
+      playSound('hit');
     } else if (state.currentItem === 'shell') {
       if (!levelData.projectiles) levelData.projectiles = [];
       levelData.projectiles.push({
@@ -364,6 +392,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
         bounces: 4,
         ownerId: 'player'
       });
+      playSound('hop');
     }
     state.currentItem = null; // consume
     keysInput.item = false; // consume key
@@ -422,7 +451,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   const facingDir = new THREE.Vector3(headingX, 0, headingZ);
 
   // Drift slip
-  const lerpFactor = state.isDrifting ? 1.5 : 9.0;
+  const lerpFactor = state.isDrifting ? 1.2 : 12.0; // tighter handling when normal, slidier when drifting
   const targetVel = facingDir.clone().multiplyScalar(state.speed);
   state.vel.lerp(targetVel, lerpFactor * dt);
 
@@ -463,7 +492,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
   state.pos.y += state.jumpOffset;
 
   // 9. Resolve colliders
-  resolveWallCollisions(state, levelData);
+  resolveWallCollisions(state, levelData, dt);
   resolveObstacleCollisions(state, levelData);
   checkBoostPads(state, levelData);
   
@@ -478,9 +507,10 @@ export function updatePhysics(state, keysInput, levelData, dt) {
         box.active = false; // collect box
         box.scale = 0;
         playSound('item');
-        // Give random item
-        const items = ['mushroom', 'oil_slick', 'shell', 'mushroom'];
-        state.currentItem = items[Math.floor(Math.random() * items.length)];
+        // Trigger item roulette
+        if (!state.currentItem && state.rouletteTimer <= 0) {
+          state.rouletteTimer = 2.0;
+        }
         
         // respawn box after 5 seconds
         setTimeout(() => { box.active = true; box.scale = 0; }, 5000);
