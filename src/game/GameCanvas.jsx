@@ -3,7 +3,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { initInput, keys } from './engine/input.js';
 import { getLevelData } from './engine/levels.js';
-import { initKartState, updatePhysics } from './engine/physics.js';
+import { initKartState, updatePhysics, getTrackHeight } from './engine/physics.js';
 import { createKartMesh, updateKartVisuals } from './engine/kart.js';
 import { updateCamera, resetCameraState } from './engine/camera.js';
 import { createRival, updateRivals } from './engine/ai.js';
@@ -272,6 +272,17 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     const outerWallMesh = createVisualWalls(levelData.outerWalls, levelData.wallColor);
     scene.add(innerWallMesh);
     scene.add(outerWallMesh);
+
+    // Skidmarks system
+    const maxSkids = 200;
+    const skidGeom = new THREE.PlaneGeometry(1.2, 0.4);
+    const skidMat = new THREE.MeshBasicMaterial({ color: 0x111111, transparent: true, opacity: 0.7, depthWrite: false });
+    const skidMesh = new THREE.InstancedMesh(skidGeom, skidMat, maxSkids);
+    skidMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    skidMesh.receiveShadow = true;
+    scene.add(skidMesh);
+    let skidIdx = 0;
+    const dummy = new THREE.Object3D();
 
     // 6. Draw Checkpoint Lines / Visual Indicators (Finish line etc.)
     // Finish line (Checkpoint 0)
@@ -684,6 +695,16 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
           if (Math.random() > 0.4) {
             spawnParticles(kartState.pos, 0x888888, 1, 0.8);
           }
+          
+          // Skidmark
+          dummy.position.copy(kartState.pos);
+          dummy.position.y = getTrackHeight(kartState.pos, levelData) + 0.05;
+          dummy.rotation.x = -Math.PI / 2;
+          dummy.rotation.z = kartState.angle;
+          dummy.updateMatrix();
+          skidMesh.setMatrixAt(skidIdx, dummy.matrix);
+          skidMesh.instanceMatrix.needsUpdate = true;
+          skidIdx = (skidIdx + 1) % maxSkids;
         }
 
         // Exhaust boost fire

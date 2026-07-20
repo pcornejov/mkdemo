@@ -1,5 +1,5 @@
-// src/game/engine/physics.js
 import * as THREE from 'three';
+import { playSound } from './sfx.js';
 
 export function initKartState(levelData) {
   return {
@@ -172,6 +172,7 @@ function resolveObstacleCollisions(state, levelData) {
       const dist = Math.sqrt(dx * dx + dz * dz);
       
       if (dist < state.radius + obs.radius) {
+        if (state.speed > 10) playSound('hit');
         // Simple bounce
         state.speed *= -0.5;
         // Push out
@@ -190,6 +191,7 @@ function resolveObstacleCollisions(state, levelData) {
       const dist = Math.sqrt(dx * dx + dz * dz);
       
       if (dist < state.radius + slick.radius && state.speed > 5) {
+        playSound('hit');
         // Spin out!
         state.spinOutTimer = 1.0;
         state.speed = 0;
@@ -207,7 +209,8 @@ function checkBoostPads(state, levelData) {
     const dist = state.pos.distanceTo(padPos);
     
     // Check if player crosses the boost pad area
-    if (dist < 4.5) {
+    if (dist < 4.5 && state.boostTimer <= 0) {
+      playSound('boost');
       state.boostTimer = 1.2; // 1.2s boost
     }
   }
@@ -276,6 +279,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
       state.driftCharge = 0;
       // Kart Hop!
       if (state.jumpOffset <= 0.1) {
+        playSound('hop');
         state.jumpVelocity = 12.0;
       }
     }
@@ -419,6 +423,7 @@ export function updatePhysics(state, keysInput, levelData, dt) {
       const dist = Math.sqrt(dx * dx + dz * dz);
       if (dist < state.radius + 3.0) {
         box.active = false; // collect box
+        playSound('item');
         // Give random item
         const items = ['mushroom', 'oil_slick', 'mushroom'];
         state.currentItem = items[Math.floor(Math.random() * items.length)];
