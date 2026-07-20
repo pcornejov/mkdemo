@@ -136,9 +136,10 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     const cloudMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1.0, flatShading: true });
 
     // 1. Scatter Trees, Bushes, and Rocks
-    for (let i = 0; i < 300; i++) {
-      const rx = (Math.random() - 0.5) * 500;
-      const rz = (Math.random() - 0.5) * 500;
+    levelData.obstacles = [...(levelData.obstacles || [])];
+    for (let i = 0; i < 400; i++) {
+      const rx = (Math.random() - 0.5) * 1200;
+      const rz = (Math.random() - 0.5) * 1200;
       
       // Avoid center track area
       if (Math.abs(rx) < 90 && Math.abs(rz) < 90) continue;
@@ -164,6 +165,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         const s = 0.6 + Math.random() * 0.8;
         obj.scale.set(s, s, s);
+        levelData.obstacles.push({ x: rx, z: rz, radius: s * 1.5, type: 'decor' });
       } else if (type < 0.85) {
         // Bush
         const bush = new THREE.Mesh(bushGeom, topMats[Math.floor(Math.random() * topMats.length)]);
@@ -174,6 +176,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         const s = 0.8 + Math.random() * 1.2;
         obj.scale.set(s, s, s);
+        levelData.obstacles.push({ x: rx, z: rz, radius: s * 1.2, type: 'decor' });
       } else {
         // Rock
         const rock = new THREE.Mesh(rockGeom, rockMat);
@@ -184,6 +187,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
         
         const s = 0.5 + Math.random() * 1.5;
         obj.scale.set(s, s * 0.7, s); // squashed rock
+        levelData.obstacles.push({ x: rx, z: rz, radius: s * 2.0, type: 'decor' });
       }
 
       obj.rotation.y = Math.random() * Math.PI;
@@ -315,6 +319,8 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
     const obstacleMeshes = [];
     if (levelData.obstacles) {
       levelData.obstacles.forEach(obs => {
+        if (obs.type === 'decor') return; // Decor is rendered separately
+        
         const coneGroup = new THREE.Group();
         coneGroup.position.set(obs.x, obs.y, obs.z);
         
