@@ -4,7 +4,7 @@ import React from 'react';
 export default function Hud({ onExitMenu }) {
   return (
     <div className="hud-overlay">
-      {/* Top Left: Lap Counter & Timer */}
+      {/* Top Left: Dashboard Panels */}
       <div className="hud-top-left">
         <div className="hud-panel hud-lap">
           <span className="hud-label">VUELTA</span>
@@ -12,18 +12,18 @@ export default function Hud({ onExitMenu }) {
         </div>
         
         <div className="hud-panel hud-timer">
-          <span className="hud-label">TIEMPO</span>
-          <span id="hud-time-value" className="hud-value" style={{ fontSize: '20px' }}>00:00.00</span>
+          <span className="hud-label">TIEMPO ACTUAL</span>
+          <span id="hud-time-value" className="hud-value font-mono" style={{ fontSize: '1.6rem' }}>00:00.00</span>
         </div>
         
-        <div className="hud-panel hud-item" style={{ marginTop: '10px', height: '60px' }}>
-          <span className="hud-label">OBJETO [Q]</span>
-          <span id="hud-item-value" className="hud-value" style={{ color: '#00f3ff', fontSize: '1.2rem' }}>Vacío</span>
-        </div>
-        
-        <div className="hud-panel hud-lap-timer" style={{ marginTop: '10px' }}>
+        <div className="hud-panel hud-lap-timer">
           <span className="hud-label">ÚLTIMA VUELTA</span>
-          <span id="hud-last-lap-value" className="hud-value" style={{ fontSize: '1.2rem', color: '#ffea00' }}>--:--.--</span>
+          <span id="hud-last-lap-value" className="hud-value font-mono" style={{ fontSize: '1.4rem', color: '#ffea00' }}>--:--.--</span>
+        </div>
+
+        <div className="hud-panel hud-item">
+          <span className="hud-label">OBJETO [Q]</span>
+          <span id="hud-item-value" className="hud-value" style={{ color: '#00f3ff', fontSize: '1.4rem' }}>Vacío</span>
         </div>
       </div>
 

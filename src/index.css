@@ -342,21 +342,20 @@ kbd {
 }
 
 /* Positionings */
-.hud-lap {
+.hud-top-left {
   position: absolute;
   top: 25px;
   left: 25px;
-  min-width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  min-width: 180px;
+  z-index: 20;
 }
 
-.hud-timer {
-  position: absolute;
-  top: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 180px;
-  text-align: center;
-  align-items: center;
+.hud-lap, .hud-timer, .hud-item, .hud-lap-timer {
+  width: 100%;
 }
 
 .font-mono {
