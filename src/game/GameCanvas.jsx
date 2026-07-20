@@ -685,7 +685,7 @@ export default function GameCanvas({ levelId, onLapChange, onFinish, onSpeedChan
 
         // E. Check Checkpoints
         const cpTarget = levelData.checkpoints[nextCheckpointIndex];
-        const distToCP = kartState.pos.distanceTo(cpTarget);
+        const distToCP = Math.sqrt(Math.pow(kartState.pos.x - cpTarget.x, 2) + Math.pow(kartState.pos.z - cpTarget.z, 2));
         
         // Checkpoint radius check (width is 15-16, so distance within 12.0 is extremely safe)
         if (distToCP < 14.0) {

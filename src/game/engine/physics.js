@@ -31,7 +31,8 @@ export function checkOnTrack(pos, levelData) {
 
   // Check main path
   for (let i = 0; i < levelData.pathPoints.length; i++) {
-    const d = pos.distanceTo(levelData.pathPoints[i]);
+    const pt = levelData.pathPoints[i];
+    const d = Math.sqrt(Math.pow(pos.x - pt.x, 2) + Math.pow(pos.z - pt.z, 2));
     if (d < minDistance) {
       minDistance = d;
       closestIdx = i;
@@ -41,7 +42,8 @@ export function checkOnTrack(pos, levelData) {
   // Check shortcut if it exists
   if (levelData.shortcutPathPoints) {
     for (let i = 0; i < levelData.shortcutPathPoints.length; i++) {
-      const d = pos.distanceTo(levelData.shortcutPathPoints[i]);
+      const pt = levelData.shortcutPathPoints[i];
+      const d = Math.sqrt(Math.pow(pos.x - pt.x, 2) + Math.pow(pos.z - pt.z, 2));
       if (d < minDistance) {
         minDistance = d;
         closestIdx = i;
@@ -78,7 +80,7 @@ export function getTrackHeight(pos, levelData) {
     t = Math.max(0, Math.min(1, t));
     
     const closestPoint = p1.clone().addScaledVector(ab, t);
-    const d = pos.distanceTo(closestPoint);
+    const d = Math.sqrt(Math.pow(pos.x - closestPoint.x, 2) + Math.pow(pos.z - closestPoint.z, 2));
     
     if (d < minD) {
       minD = d;
@@ -101,7 +103,7 @@ export function getTrackHeight(pos, levelData) {
       t = Math.max(0, Math.min(1, t));
       
       const closestPoint = p1.clone().addScaledVector(ab, t);
-      const d = pos.distanceTo(closestPoint);
+      const d = Math.sqrt(Math.pow(pos.x - closestPoint.x, 2) + Math.pow(pos.z - closestPoint.z, 2));
       
       if (d < minD) {
         minD = d;
